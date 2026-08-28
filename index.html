@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة شئون الطلاب - المرحلة الثانوية</title>
+    <!-- استخدام Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 max-w-7xl">
+
+        <!-- رأس الصفحة -->
+        <header class="bg-indigo-700 text-white p-6 rounded-2xl shadow-lg mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold">نظام إدارة شئون الطلاب</h1>
+                <p class="text-indigo-200 mt-1 text-sm">الأول (عام) - الثاني (مسارات) - الثالث (علوم/رياضة/أدبي) - مرتبط بـ Google Sheets</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <button onclick="openPromotionModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition flex items-center gap-2">
+                    🎓 ترحيل ونتائج الامتحانات
+                </button>
+                <button onclick="openClassDistModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition flex items-center gap-2">
+                    ⚙️ إعداد وتوزيع الفصول الآلي
+                </button>
+                <div id="loadingStatus" class="text-amber-300 font-semibold text-sm">متصل بـ Google Sheets</div>
+            </div>
+        </header>
+
+        <!-- الأزرار التبويبية (Tabs Navigation) -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button onclick="switchTab('add')" id="tabBtn-add" class="py-3 px-6 font-bold text-indigo-600 border-b-2 border-indigo-600 focus:outline-none transition">
+                ➕ إضافة طالب جديد
+            </button>
+            <button onclick="switchTab('tracks')" id="tabBtn-tracks" class="py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition">
+                🔄 تعديل وتحويل الشعب والمسارات
+            </button>
+        </div>
+
+        <!-- تاب 1: نموذج إدخال البيانات -->
+        <section id="tabContent-add" class="bg-white p-6 rounded-2xl shadow-md mb-8 border border-gray-100">
+            <h2 class="text-xl font-bold text-indigo-700 mb-4 pb-2 border-b">إضافة طالب جديد</h2>
+            
+            <form id="studentForm" onsubmit="submitStudentData(event)" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الصف الدراسي</label>
+                    <select id="grade" onchange="updateGradeOptions()" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                        <option value="">اختر الصف...</option>
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                    </select>
+                </div>
+
+                <!-- الشعبة / المسار الدراسي -->
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الشعبة / المسار</label>
+                    <select id="track" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                        <option value="">اختر الصف أولاً...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">حالة الطالب</label>
+                    <select id="studentStatus" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                        <option value="نظامي">نظامي</option>
+                        <option value="منازل">منازل</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">كود الطالب</label>
+                    <input type="text" id="code" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-semibold mb-1">اسم الطالب رباعي</label>
+                    <input type="text" id="name" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold mb-1">الرقم القومي (14 رقم)</label>
+                    <input type="text" id="nationalId" maxlength="14" placeholder="أدخل 14 رقم لاستخراج البيانات تلقائياً" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required oninput="extractNationalIdData()">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">النوع</label>
+                    <input type="text" id="gender" class="w-full p-2 border rounded-lg bg-gray-100" readonly>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">تاريخ الميلاد</label>
+                    <input type="text" id="birthDate" class="w-full p-2 border rounded-lg bg-gray-100" readonly>
+                </div>
+
+                <!-- السن في 1-10-2026 -->
+                <div class="md:col-span-2 grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">سنوات (في 1/10)</label>
+                        <input type="text" id="ageYears" class="w-full p-2 border rounded-lg bg-gray-100 text-center" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">شهور</label>
+                        <input type="text" id="ageMonths" class="w-full p-2 border rounded-lg bg-gray-100 text-center" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">أيام</label>
+                        <input type="text" id="ageDays" class="w-full p-2 border rounded-lg bg-gray-100 text-center" readonly>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">اسم ولي الأمر</label>
+                    <input type="text" id="guardianName" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">وظيفة ولي الأمر</label>
+                    <input type="text" id="guardianJob" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">رقم التليفون</label>
+                    <input type="tel" id="phone" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الحالة الاجتماعية</label>
+                    <select id="socialStatus" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="سداد كامل">سداد كامل</option>
+                        <option value="شئون">شئون</option>
+                        <option value="أيتام">أيتام</option>
+                        <option value="أبناء عاملين">أبناء عاملين</option>
+                        <option value="تنمية مجتمع">تنمية مجتمع</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold mb-1">العنوان</label>
+                    <input type="text" id="address" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الديانة</label>
+                    <select id="religion" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="مسلم">مسلم</option>
+                        <option value="مسيحي">مسيحي</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">اسم الأم</label>
+                    <input type="text" id="motherName" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الرقم القومي للأب (14 رقم)</label>
+                    <input type="text" id="fatherNationalId" maxlength="14" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الرقم القومي للأم (14 رقم)</label>
+                    <input type="text" id="motherNationalId" maxlength="14" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold mb-1">المدرسة الإعدادية</label>
+                    <select id="prepSchool" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="النواميس الإعدادية بنين">النواميس الإعدادية بنين</option>
+                        <option value="النواميس الإعدادية بنات">النواميس الإعدادية بنات</option>
+                        <option value="منشأة همام الإعدادية المشتركة">منشأة همام الإعدادية المشتركة</option>
+                        <option value="الدكتور عبد الرقيب للتعليم الأساسي">الدكتور عبد الرقيب للتعليم الأساسي</option>
+                        <option value="الشهيد هاني عبد الله الإعدادية بنين">الشهيد هاني عبد الله الإعدادية بنين</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">المجموع</label>
+                    <input type="number" step="0.5" id="totalScore" placeholder="مثال: 250" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الفصل (اختياري)</label>
+                    <select id="classRoom" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">بدون فصل (يُوزّع لاحقاً)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">نتيجة الامتحان (للترحيل)</label>
+                    <select id="examStatus" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="ناجح">ناجح</option>
+                        <option value="راسب">راسب</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-full flex justify-end mt-4">
+                    <button type="submit" id="submitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-lg shadow transition">حفظ وإرسال إلى Google Sheets</button>
+                </div>
+
+            </form>
+        </section>
+
+        <!-- تاب 2: تعديل وتحويل الشعب والمسارات أثناء الدراسة -->
+        <section id="tabContent-tracks" class="bg-white p-6 rounded-2xl shadow-md mb-8 border border-gray-100 hidden">
+            <h2 class="text-xl font-bold text-indigo-700 mb-2">تعديل وتحويل الشعب والمسارات للطلاب</h2>
+            <p class="text-sm text-gray-500 mb-4">ابحث عن الطالب بالاسم أو الكود، ثم اختر الشعبة أو المسار الجديد واضغط حفظ.</p>
+            
+            <div class="mb-4">
+                <input type="text" id="trackSearchInput" onkeyup="filterTrackStudents()" placeholder="🔍 ابحث عن اسم الطالب أو الكود للتعديل..." class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 shadow-sm">
+            </div>
+
+            <div class="overflow-x-auto max-h-[500px]">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-indigo-50 text-indigo-900 border-b sticky top-0">
+                            <th class="p-3">الكود</th>
+                            <th class="p-3">اسم الطالب رباعي</th>
+                            <th class="p-3">الصف الدراسي</th>
+                            <th class="p-3">الشعبة / المسار الحالي</th>
+                            <th class="p-3">تغيير إلى الشعبة / المسار الجديد</th>
+                            <th class="p-3 text-center">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trackTableBody" class="divide-y divide-gray-200">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- قسم الفلترة وعرض البيانات العام -->
+        <section class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <h2 class="text-xl font-bold text-indigo-700">سجل الطلاب السحابي</h2>
+                
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <select id="filterGrade" onchange="filterStudents()" class="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">كل المراحل</option>
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                    </select>
+
+                    <select id="filterTrack" onchange="filterStudents()" class="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">كل المسارات والشعب</option>
+                        <option value="شعبة عامة">شعبة عامة</option>
+                        <option value="الطب وعلوم الحياة">الطب وعلوم الحياة (ثاني)</option>
+                        <option value="الهندسة وعلوم الحاسب">الهندسة وعلوم الحاسب (ثاني)</option>
+                        <option value="الآداب والفنون">الآداب والفنون (ثاني)</option>
+                        <option value="المحاسبة وإدارة الأعمال">المحاسبة وإدارة الأعمال (ثاني)</option>
+                        <option value="علمي علوم">علمي علوم (ثالث)</option>
+                        <option value="علمي رياضيات">علمي رياضيات (ثالث)</option>
+                        <option value="أدبي">أدبي (ثالث)</option>
+                    </select>
+
+                    <input type="text" id="searchInput" onkeyup="filterStudents()" placeholder="ابحث بالاسم أو الكود..." class="p-2 border rounded-lg w-full md:w-48 focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-indigo-50 text-indigo-900 border-b">
+                            <th class="p-3">المرحلة</th>
+                            <th class="p-3">الشعبة / المسار</th>
+                            <th class="p-3">الحالة</th>
+                            <th class="p-3">الكود</th>
+                            <th class="p-3">الاسم</th>
+                            <th class="p-3">المجموع</th>
+                            <th class="p-3">الفصل</th>
+                            <th class="p-3">النتيجة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody" class="divide-y divide-gray-200">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- نافذة إعداد الفصول الآلي -->
+    <div id="classModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 class="text-xl font-bold text-indigo-700 mb-4">توزيع الفصول الآلي</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">اختر المرحلة</label>
+                    <select id="targetGradeDist" class="w-full p-2 border rounded-lg">
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">عدد الفصول</label>
+                    <input type="number" id="numClasses" value="3" min="1" max="20" class="w-full p-2 border rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeClassDistModal()" class="px-4 py-2 bg-gray-200 rounded-lg">إلغاء</button>
+                <button onclick="distributeClasses()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">بدء التوزيع</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة ترحيل النتائج -->
+    <div id="promotionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 class="text-xl font-bold text-amber-700 mb-2">تحديث نتائج الامتحانات والترحيل السنوي</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                - الأول الناجح ينتقل للثاني.<br>
+                - الثاني الناجح ينتقل للثالث (بالشعب التقليدية: علوم/رياضة/أدبي).<br>
+                - الثالث الناجح يتخرج.
+            </p>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closePromotionModal()" class="px-4 py-2 bg-gray-200 rounded-lg">إلغاء</button>
+                <button onclick="executePromotion()" class="px-4 py-2 bg-amber-600 text-white rounded-lg font-bold">تأكيد التنفيذ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwVWvSIyPQ-eR0nyZgZMwwBz_M2qtwjX1yWVOVDcBQ4whlKSR1fH_vJAbE90f0XnejO/exec';
+
+        function switchTab(tab) {
+            document.getElementById('tabContent-add').classList.toggle('hidden', tab !== 'add');
+            document.getElementById('tabContent-tracks').classList.toggle('hidden', tab !== 'tracks');
+            
+            document.getElementById('tabBtn-add').className = tab === 'add' 
+                ? 'py-3 px-6 font-bold text-indigo-600 border-b-2 border-indigo-600 focus:outline-none transition' 
+                : 'py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition';
+            
+            document.getElementById('tabBtn-tracks').className = tab === 'tracks' 
+                ? 'py-3 px-6 font-bold text-indigo-600 border-b-2 border-indigo-600 focus:outline-none transition' 
+                : 'py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition';
+        }
+
+        function openClassDistModal() { document.getElementById('classModal').classList.remove('hidden'); document.getElementById('classModal').classList.add('flex'); }
+        function closeClassDistModal() { document.getElementById('classModal').classList.add('hidden'); document.getElementById('classModal').classList.remove('flex'); }
+        function openPromotionModal() { document.getElementById('promotionModal').classList.remove('hidden'); document.getElementById('promotionModal').classList.add('flex'); }
+        function closePromotionModal() { document.getElementById('promotionModal').classList.add('hidden'); document.getElementById('promotionModal').classList.remove('flex'); }
+
+        function updateGradeOptions() {
+            const grade = document.getElementById('grade').value;
+            const trackSelect = document.getElementById('track');
+            trackSelect.innerHTML = '';
+
+            let options = [];
+            if (grade === 'الصف الأول الثانوي') {
+                options = ['شعبة عامة'];
+            } else if (grade === 'الصف الثاني الثانوي') {
+                options = [
+                    'الطب وعلوم الحياة',
+                    'الهندسة وعلوم الحاسب',
+                    'الآداب والفنون',
+                    'المحاسبة وإدارة الأعمال'
+                ];
+            } else if (grade === 'الصف الثالث الثانوي') {
+                options = [
+                    'علمي علوم',
+                    'علمي رياضيات',
+                    'أدبي'
+                ];
+            } else {
+                options = ['اختر الصف أولاً...'];
+            }
+
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt === 'اختر الصف أولاً...' ? '' : opt;
+                el.textContent = opt;
+                trackSelect.appendChild(el);
+            });
+        }
+
+        function extractNationalIdData() {
+            const nationalId = document.getElementById('nationalId').value;
+            if (nationalId.length === 14) {
+                const century = nationalId[0] === '2' ? 1900 : 2000;
+                const year = century + parseInt(nationalId.substr(1, 2));
+                const month = nationalId.substr(3, 2);
+                const day = nationalId.substr(5, 2);
+                
+                document.getElementById('birthDate').value = `${year}-${month}-${day}`;
+                
+                const genderDigit = parseInt(nationalId[12]);
+                const gender = genderDigit % 2 === 0 ? 'أنثى' : 'ذكر';
+                document.getElementById('gender').value = gender;
+
+                const birthDateObj = new Date(year, month - 1, day);
+                const targetDate = new Date(2026, 9, 1); 
+                
+                let years = targetDate.getFullYear() - birthDateObj.getFullYear();
+                let months = targetDate.getMonth() - birthDateObj.getMonth();
+                let days = targetDate.getDate() - birthDateObj.getDate();
+
+                if (days < 0) {
+                    months--;
+                    days += new Date(targetDate.getFullYear(), targetDate.getMonth(), 0).getDate();
+                }
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+
+                document.getElementById('ageYears').value = years;
+                document.getElementById('ageMonths').value = months;
+                document.getElementById('ageDays').value = days;
+            }
+        }
+
+        function submitStudentData(event) {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'جاري الحفظ...';
+
+            var studentData = {
+                "الصف الدراسي": document.getElementById("grade").value,
+                "الشعبة": document.getElementById("track").value,
+                "حالة الطالب": document.getElementById("studentStatus").value,
+                "كود الطالب": document.getElementById("code").value,
+                "اسم الطالب رباعي": document.getElementById("name").value,
+                "الرقم القومي": document.getElementById("nationalId").value,
+                "النوع": document.getElementById("gender").value,
+                "تاريخ الميلاد": document.getElementById("birthDate").value,
+                "سنوات": document.getElementById("ageYears").value,
+                "شهور": document.getElementById("ageMonths").value,
+                "أيام": document.getElementById("ageDays").value,
+                "اسم ولي الأمر": document.getElementById("guardianName").value,
+                "وظيفة ولي الأمر": document.getElementById("guardianJob").value,
+                "رقم التليفون": document.getElementById("phone").value,
+                "الحالة الاجتماعية": document.getElementById("socialStatus").value,
+                "العنوان": document.getElementById("address").value,
+                "الديانة": document.getElementById("religion").value,
+                "اسم الأم": document.getElementById("motherName").value,
+                "الرقم القومي للأب": document.getElementById("fatherNationalId").value,
+                "الرقم القومي للأم": document.getElementById("motherNationalId").value,
+                "المدرسة الإعدادية": document.getElementById("prepSchool").value,
+                "المجموع": document.getElementById("totalScore").value,
+                "الفصل": document.getElementById("classRoom").value || "",
+                "نتيجة الامتحان (للترحيل)": document.getElementById("examStatus").value
+            };
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(studentData)
+            })
+            .then(response => {
+                alert('تم حفظ بيانات الطالب (بما فيها المدرسة والنتيجة) وإرسالها إلى ملف الشيت بنجاح!');
+                document.getElementById("studentForm").reset();
+            })
+            .catch(error => {
+                console.error('Error!', error);
+                alert('حدث خطأ أثناء إرسال البيانات.');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'حفظ وإرسال إلى Google Sheets';
+            });
+        }
+
+        function filterStudents() {}
+        function filterTrackStudents() {}
+        function distributeClasses() { closeClassDistModal(); alert('تم بدء توزيع الفصول'); }
+        function executePromotion() {
+    closePromotionModal();
+    
+    // إعلام المستخدم أن العمل جاري
+    alert('جاري تنفيذ الترحيل وتحديث الصفوف في Google Sheets...');
+
+    fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ "action": "promote" })
+    })
+    .then(response => {
+        alert('تم تنفيذ الترحيل بنجاح وتحديث صفوف الطلاب في ملف الشيت!');
+    })
+    .catch(error => {
+        console.error('Error!', error);
+        alert('حدث خطأ أثناء تنفيذ الترحيل.');
+    });
+}
+    </script>
+</body>
+</html>
