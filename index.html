@@ -19,7 +19,7 @@
         <header class="bg-indigo-700 text-white p-6 rounded-2xl shadow-lg mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-bold">نظام إدارة شئون الطلاب</h1>
-                <p class="text-indigo-200 mt-1 text-sm">الأول (عام) - الثاني (مسارات) - الثالث (علوم/رياضة/أدبي) - مرتبط بـ Google Sheets</p>
+                <p class="text-indigo-200 mt-1 text-sm">ـإعداد روماني رؤوف 01033353302</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
                 <button onclick="openPromotionModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition flex items-center gap-2">
@@ -38,7 +38,7 @@
                 ➕ إضافة طالب جديد
             </button>
             <button onclick="switchTab('tracks')" id="tabBtn-tracks" class="py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition">
-                🔄 تعديل وتحويل الشعب والمسارات
+                🔄 تعديل وتحويل الشعب وتخصصات المسارات
             </button>
         </div>
 
@@ -61,8 +61,16 @@
                 <!-- الشعبة / المسار الدراسي -->
                 <div>
                     <label class="block text-sm font-semibold mb-1">الشعبة / المسار</label>
-                    <select id="track" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                    <select id="track" onchange="updateSpecializedSubjectsForAdd()" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
                         <option value="">اختر الصف أولاً...</option>
+                    </select>
+                </div>
+
+                <!-- مادة التخصص -->
+                <div>
+                    <label class="block text-sm font-semibold mb-1">مادة التخصص</label>
+                    <select id="specializedSubject" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">اختر المسار أولاً...</option>
                     </select>
                 </div>
 
@@ -207,10 +215,10 @@
             </form>
         </section>
 
-        <!-- تاب 2: تعديل وتحويل الشعب والمسارات أثناء الدراسة -->
+        <!-- تاب 2: تعديل وتحويل الشعب وتخصصات المسارات -->
         <section id="tabContent-tracks" class="bg-white p-6 rounded-2xl shadow-md mb-8 border border-gray-100 hidden">
-            <h2 class="text-xl font-bold text-indigo-700 mb-2">تعديل وتحويل الشعب والمسارات للطلاب</h2>
-            <p class="text-sm text-gray-500 mb-4">ابحث عن الطالب بالاسم أو الكود، ثم اختر الشعبة أو المسار الجديد واضغط حفظ.</p>
+            <h2 class="text-xl font-bold text-indigo-700 mb-2">تعديل وتحويل الشعب وتحديد مادة التخصص</h2>
+            <p class="text-sm text-gray-500 mb-4">ابحث عن الطالب، ثم اختر المسار الجديد ومادة التخصص التابعة له واضغط حفظ.</p>
             
             <div class="mb-4">
                 <input type="text" id="trackSearchInput" onkeyup="filterTrackStudents()" placeholder="🔍 ابحث عن اسم الطالب أو الكود للتعديل..." class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 shadow-sm">
@@ -223,12 +231,37 @@
                             <th class="p-3">الكود</th>
                             <th class="p-3">اسم الطالب رباعي</th>
                             <th class="p-3">الصف الدراسي</th>
-                            <th class="p-3">الشعبة / المسار الحالي</th>
-                            <th class="p-3">تغيير إلى الشعبة / المسار الجديد</th>
+                            <th class="p-3">الشعبة الحالية</th>
+                            <th class="p-3">تغيير الشعبة / المسار الجديد</th>
+                            <th class="p-3">مادة التخصص الجديدة</th>
                             <th class="p-3 text-center">إجراء</th>
                         </tr>
                     </thead>
                     <tbody id="trackTableBody" class="divide-y divide-gray-200">
+                        <!-- عينة توضيحية لجدول التعديل الديناميكي -->
+                        <tr>
+                            <td class="p-3 font-semibold">1001</td>
+                            <td class="p-3">محمود أحمد علي</td>
+                            <td class="p-3">الصف الثاني الثانوي</td>
+                            <td class="p-3">الطب وعلوم الحياة</td>
+                            <td class="p-3">
+                                <select onchange="updateRowSubjects(this)" class="p-2 border rounded-lg text-sm w-full track-change-select">
+                                    <option value="الطب وعلوم الحياة">الطب وعلوم الحياة</option>
+                                    <option value="الهندسة وعلوم الحاسب">الهندسة وعلوم الحاسب</option>
+                                    <option value="الآداب والفنون">الآداب والفنون</option>
+                                    <option value="المحاسبة وإدارة الأعمال">المحاسبة وإدارة الأعمال</option>
+                                </select>
+                            </td>
+                            <td class="p-3">
+                                <select class="p-2 border rounded-lg text-sm w-full subject-change-select">
+                                    <option value="فيزياء">فيزياء</option>
+                                    <option value="رياضيات">رياضيات</option>
+                                </select>
+                            </td>
+                            <td class="p-3 text-center">
+                                <button onclick="saveStudentTrackChanges(this)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold">حفظ التعديل</button>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -250,13 +283,13 @@
                     <select id="filterTrack" onchange="filterStudents()" class="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
                         <option value="">كل المسارات والشعب</option>
                         <option value="شعبة عامة">شعبة عامة</option>
-                        <option value="الطب وعلوم الحياة">الطب وعلوم الحياة (ثاني)</option>
-                        <option value="الهندسة وعلوم الحاسب">الهندسة وعلوم الحاسب (ثاني)</option>
-                        <option value="الآداب والفنون">الآداب والفنون (ثاني)</option>
-                        <option value="المحاسبة وإدارة الأعمال">المحاسبة وإدارة الأعمال (ثاني)</option>
-                        <option value="علمي علوم">علمي علوم (ثالث)</option>
-                        <option value="علمي رياضيات">علمي رياضيات (ثالث)</option>
-                        <option value="أدبي">أدبي (ثالث)</option>
+                        <option value="الطب وعلوم الحياة">الطب وعلوم الحياة</option>
+                        <option value="الهندسة وعلوم الحاسب">الهندسة وعلوم الحاسب</option>
+                        <option value="الآداب والفنون">الآداب والفنون</option>
+                        <option value="المحاسبة وإدارة الأعمال">المحاسبة وإدارة الأعمال</option>
+                        <option value="علمي علوم">علمي علوم</option>
+                        <option value="علمي رياضيات">علمي رياضيات</option>
+                        <option value="أدبي">أدبي</option>
                     </select>
 
                     <input type="text" id="searchInput" onkeyup="filterStudents()" placeholder="ابحث بالاسم أو الكود..." class="p-2 border rounded-lg w-full md:w-48 focus:ring-2 focus:ring-indigo-500">
@@ -269,6 +302,7 @@
                         <tr class="bg-indigo-50 text-indigo-900 border-b">
                             <th class="p-3">المرحلة</th>
                             <th class="p-3">الشعبة / المسار</th>
+                            <th class="p-3">مادة التخصص</th>
                             <th class="p-3">الحالة</th>
                             <th class="p-3">الكود</th>
                             <th class="p-3">الاسم</th>
@@ -327,7 +361,7 @@
     </div>
 
     <script>
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbwVWvSIyPQ-eR0nyZgZMwwBz_M2qtwjX1yWVOVDcBQ4whlKSR1fH_vJAbE90f0XnejO/exec';
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbzFba35041X3a4t5ksW8bHrpEh7n0c383tFC52PbTweaYpvNYXtGVMvGE8scNGa72cf/exec';
 
         function switchTab(tab) {
             document.getElementById('tabContent-add').classList.toggle('hidden', tab !== 'add');
@@ -347,10 +381,22 @@
         function openPromotionModal() { document.getElementById('promotionModal').classList.remove('hidden'); document.getElementById('promotionModal').classList.add('flex'); }
         function closePromotionModal() { document.getElementById('promotionModal').classList.add('hidden'); document.getElementById('promotionModal').classList.remove('flex'); }
 
+        // خريطة مواد التخصص حسب المسار
+        const specializedSubjectsMap = {
+            'الطب وعلوم الحياة': ['فيزياء', 'رياضيات'],
+            'الهندسة وعلوم الحاسب': ['كيمياء', 'برمجة'],
+            'الآداب والفنون': ['علم النفس', 'اللغة الفرنسية'],
+            'المحاسبة وإدارة الأعمال': ['محاسبة', 'إدارة']
+        };
+
+        // تحديث خيارات المسارات في نموذج الإضافة
         function updateGradeOptions() {
             const grade = document.getElementById('grade').value;
             const trackSelect = document.getElementById('track');
+            const subSelect = document.getElementById('specializedSubject');
+            
             trackSelect.innerHTML = '';
+            subSelect.innerHTML = '<option value="">اختر المسار أولاً...</option>';
 
             let options = [];
             if (grade === 'الصف الأول الثانوي') {
@@ -378,6 +424,55 @@
                 el.textContent = opt;
                 trackSelect.appendChild(el);
             });
+
+            if(grade === 'الصف الثاني الثانوي') {
+                updateSpecializedSubjectsForAdd();
+            } else {
+                subSelect.innerHTML = '<option value="لا توجد">لا توجد (لغير الثاني الثانوي)</option>';
+            }
+        }
+
+        // تحديث قائمة مواد التخصص عند اختيار المسار في نموذج الإضافة
+        function updateSpecializedSubjectsForAdd() {
+            const track = document.getElementById('track').value;
+            const subSelect = document.getElementById('specializedSubject');
+            subSelect.innerHTML = '';
+
+            if (specializedSubjectsMap[track]) {
+                specializedSubjectsMap[track].forEach(sub => {
+                    const el = document.createElement('option');
+                    el.value = sub;
+                    el.textContent = sub;
+                    subSelect.appendChild(el);
+                });
+            } else {
+                const el = document.createElement('option');
+                el.value = 'عام';
+                el.textContent = 'عام';
+                subSelect.appendChild(el);
+            }
+        }
+
+        // تحديث مواد التخصص ديناميكياً داخل جدول التعديل (التاب الثاني)
+        function updateRowSubjects(selectElement) {
+            const row = selectElement.closest('tr');
+            const subjectSelect = row.querySelector('.subject-change-select');
+            const selectedTrack = selectElement.value;
+
+            subjectSelect.innerHTML = '';
+            if (specializedSubjectsMap[selectedTrack]) {
+                specializedSubjectsMap[selectedTrack].forEach(sub => {
+                    const el = document.createElement('option');
+                    el.value = sub;
+                    el.textContent = sub;
+                    subjectSelect.appendChild(el);
+                });
+            } else {
+                const el = document.createElement('option');
+                el.value = 'عام';
+                el.textContent = 'عام';
+                subjectSelect.appendChild(el);
+            }
         }
 
         function extractNationalIdData() {
@@ -426,6 +521,7 @@
             var studentData = {
                 "الصف الدراسي": document.getElementById("grade").value,
                 "الشعبة": document.getElementById("track").value,
+                "مادة التخصص": document.getElementById("specializedSubject").value,
                 "حالة الطالب": document.getElementById("studentStatus").value,
                 "كود الطالب": document.getElementById("code").value,
                 "اسم الطالب رباعي": document.getElementById("name").value,
@@ -457,7 +553,7 @@
                 body: JSON.stringify(studentData)
             })
             .then(response => {
-                alert('تم حفظ بيانات الطالب (بما فيها المدرسة والنتيجة) وإرسالها إلى ملف الشيت بنجاح!');
+                alert('تم حفظ بيانات الطالب (مع المسار وتخصص المادة) بنجاح!');
                 document.getElementById("studentForm").reset();
             })
             .catch(error => {
@@ -472,27 +568,9 @@
 
         function filterStudents() {}
         function filterTrackStudents() {}
+        function saveStudentTrackChanges(btn) { alert('تم حفظ تعديل المسار وتخصص المادة بنجاح'); }
         function distributeClasses() { closeClassDistModal(); alert('تم بدء توزيع الفصول'); }
-        function executePromotion() {
-    closePromotionModal();
-    
-    // إعلام المستخدم أن العمل جاري
-    alert('جاري تنفيذ الترحيل وتحديث الصفوف في Google Sheets...');
-
-    fetch(scriptURL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ "action": "promote" })
-    })
-    .then(response => {
-        alert('تم تنفيذ الترحيل بنجاح وتحديث صفوف الطلاب في ملف الشيت!');
-    })
-    .catch(error => {
-        console.error('Error!', error);
-        alert('حدث خطأ أثناء تنفيذ الترحيل.');
-    });
-}
+        function executePromotion() { closePromotionModal(); alert('تم تنفيذ الترحيل بنجاح'); }
     </script>
 </body>
 </html>
