@@ -669,7 +669,7 @@
             displayStudents(filtered);
         }
 
-        // حساب وعرض الإحصائيات الشاملة لكل صف
+ // حساب وعرض الإحصائيات الشاملة لكل صف
         function renderStatistics() {
             const container = document.getElementById('statsContainer');
             container.innerHTML = '';
@@ -679,6 +679,10 @@
             grades.forEach(grade => {
                 const studentsInGrade = allStudentsData.filter(st => String(st[22] || '').trim() === grade);
                 const totalCount = studentsInGrade.length;
+
+                // 0. النوع (ذكر / أنثى) - (تأكد أن الفهرس [3] يوافق عمود النوع في بياناتك)
+                const males = studentsInGrade.filter(st => String(st[3] || '').trim() === 'ذكر').length;
+                const females = studentsInGrade.filter(st => String(st[3] || '').trim() === 'أنثى').length;
 
                 // 1. الديانة
                 const muslim = studentsInGrade.filter(st => String(st[13] || '').trim() === 'مسلم').length;
@@ -695,65 +699,79 @@
                 let tracksStatsHTML = '';
                 if (grade === 'الصف الأول الثانوي') {
                     const general = studentsInGrade.filter(st => String(st[20] || '').trim() === 'شعبة عامة').length;
-                    tracksStatsHTML = `<div class="flex justify-between py-1 border-b"><span>شعبة عامة:</span><span class="font-bold">${general}</span></div>`;
+                    tracksStatsHTML = `<div class="flex justify-between py-1 border-b text-sm"><span>شعبة عامة:</span><span class="font-bold">${general}</span></div>`;
                 } else if (grade === 'الصف الثاني الثانوي') {
                     const t1 = studentsInGrade.filter(st => String(st[20] || '').trim() === 'الطب وعلوم الحياة').length;
                     const t2 = studentsInGrade.filter(st => String(st[20] || '').trim() === 'الهندسة وعلوم الحاسب').length;
                     const t3 = studentsInGrade.filter(st => String(st[20] || '').trim() === 'الآداب والفنون').length;
                     const t4 = studentsInGrade.filter(st => String(st[20] || '').trim() === 'المحاسبة وإدارة الأعمال').length;
                     tracksStatsHTML = `
-                        <div class="flex justify-between py-1 border-b text-xs"><span>الطب وعلوم الحياة:</span><span class="font-bold">${t1}</span></div>
-                        <div class="flex justify-between py-1 border-b text-xs"><span>الهندسة وعلوم الحاسب:</span><span class="font-bold">${t2}</span></div>
-                        <div class="flex justify-between py-1 border-b text-xs"><span>الآداب والفنون:</span><span class="font-bold">${t3}</span></div>
-                        <div class="flex justify-between py-1 border-b text-xs"><span>المحاسبة وإدارة الأعمال:</span><span class="font-bold">${t4}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>الطب وعلوم الحياة:</span><span class="font-bold">${t1}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>الهندسة وعلوم الحاسب:</span><span class="font-bold">${t2}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>الآداب والفنون:</span><span class="font-bold">${t3}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>المحاسبة وإدارة الأعمال:</span><span class="font-bold">${t4}</span></div>
                     `;
                 } else if (grade === 'الصف الثالث الثانوي') {
                     const sciBio = studentsInGrade.filter(st => String(st[20] || '').trim() === 'علمي علوم').length;
                     const sciMath = studentsInGrade.filter(st => String(st[20] || '').trim() === 'علمي رياضيات').length;
                     const arts = studentsInGrade.filter(st => String(st[20] || '').trim() === 'أدبي').length;
                     tracksStatsHTML = `
-                        <div class="flex justify-between py-1 border-b"><span>علمي علوم:</span><span class="font-bold">${sciBio}</span></div>
-                        <div class="flex justify-between py-1 border-b"><span>علمي رياضيات:</span><span class="font-bold">${sciMath}</span></div>
-                        <div class="flex justify-between py-1 border-b"><span>أدبي:</span><span class="font-bold">${arts}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>علمي علوم:</span><span class="font-bold">${sciBio}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>علمي رياضيات:</span><span class="font-bold">${sciMath}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>أدبي:</span><span class="font-bold">${arts}</span></div>
                     `;
                 }
 
-                container.innerHTML += `
-                    <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                const cardHTML = `
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                        <div class="flex justify-between items-center mb-4 border-b pb-3">
+                            <span class="bg-indigo-700 text-white text-xs px-3 py-1 rounded-full font-bold">الإجمالي: ${totalCount}</span>
+                            <h3 class="text-lg font-bold text-indigo-900">${grade}</h3>
+                        </div>
+
+                        <!-- قسم النوع -->
+                        <div class="mb-4">
+                            <div class="bg-indigo-50 text-indigo-900 font-bold text-xs py-1.5 px-3 rounded-md mb-2 text-right">
+                                👤 النوع
+                            </div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>ذكر:</span><span class="font-bold text-blue-600">${males}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>أنثى:</span><span class="font-bold text-pink-600">${females}</span></div>
+                        </div>
+
+                        <!-- قسم الديانة -->
+                        <div class="mb-4">
+                            <div class="bg-indigo-50 text-indigo-900 font-bold text-xs py-1.5 px-3 rounded-md mb-2 text-right">
+                                🕌 الديانة
+                            </div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>مسلم:</span><span class="font-bold">${muslim}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>مسيحي:</span><span class="font-bold">${christian}</span></div>
+                        </div>
+
+                        <!-- قسم الحالة الاجتماعية / المصروفات -->
+                        <div class="mb-4">
+                            <div class="bg-indigo-50 text-indigo-900 font-bold text-xs py-1.5 px-3 rounded-md mb-2 text-right">
+                                📄 الحالة الاجتماعية / المصروفات
+                            </div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>سداد كامل:</span><span class="font-bold">${fullPaid}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>شئون:</span><span class="font-bold">${affairs}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>أيتام:</span><span class="font-bold">${orphans}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>أبناء عاملين:</span><span class="font-bold">${workersKids}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>تنمية مجتمع:</span><span class="font-bold">${commDev}</span></div>
+                        </div>
+
+                        <!-- قسم المسارات والشعب -->
                         <div>
-                            <div class="flex justify-between items-center mb-4 border-b pb-2">
-                                <h3 class="font-bold text-lg text-indigo-800">${grade}</h3>
-                                <span class="bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-bold">الإجمالي: ${totalCount}</span>
+                            <div class="bg-indigo-50 text-indigo-900 font-bold text-xs py-1.5 px-3 rounded-md mb-2 text-right">
+                                📊 المسارات والشعب
                             </div>
-
-                            <div class="space-y-4 text-sm">
-                                <div>
-                                    <h4 class="font-bold text-gray-700 bg-indigo-50 p-1.5 rounded mb-1">⛪ الديانة</h4>
-                                    <div class="flex justify-between py-1 border-b"><span>مسلم:</span><span class="font-bold">${muslim}</span></div>
-                                    <div class="flex justify-between py-1 border-b"><span>مسيحي:</span><span class="font-bold">${christian}</span></div>
-                                </div>
-
-                                <div>
-                                    <h4 class="font-bold text-gray-700 bg-indigo-50 p-1.5 rounded mb-1">🤝 الحالة الاجتماعية / المصروفات</h4>
-                                    <div class="flex justify-between py-1 border-b"><span>سداد كامل:</span><span class="font-bold">${fullPaid}</span></div>
-                                    <div class="flex justify-between py-1 border-b"><span>شئون:</span><span class="font-bold">${affairs}</span></div>
-                                    <div class="flex justify-between py-1 border-b"><span>أيتام:</span><span class="font-bold">${orphans}</span></div>
-                                    <div class="flex justify-between py-1 border-b"><span>أبناء عاملين:</span><span class="font-bold">${workersKids}</span></div>
-                                    <div class="flex justify-between py-1 border-b"><span>تنمية مجتمع:</span><span class="font-bold">${commDev}</span></div>
-                                </div>
-
-                                <div>
-                                    <h4 class="font-bold text-gray-700 bg-indigo-50 p-1.5 rounded mb-1">📚 المسارات والشعب</h4>
-                                    ${tracksStatsHTML}
-                                </div>
-                            </div>
+                            ${tracksStatsHTML}
                         </div>
                     </div>
                 `;
-            });
-        }
 
-        function loadStudentsForTracks() {
+                container.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        }        function loadStudentsForTracks() {
             const tbody = document.getElementById('trackTableBody');
             tbody.innerHTML = '';
 
