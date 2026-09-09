@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -35,6 +36,9 @@
                 <button onclick="openViewClassesModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition flex items-center gap-2">
                     👁️ عرض وطباعة الفصول
                 </button>
+                <button onclick="exportAllClassesToExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-green-700 transition">
+    📊 تصدير جميع الفصول بملف واحد (شيتات منفصلة)
+</button>
                 <div id="loadingStatus" class="text-amber-300 font-semibold text-sm">جاري الاتصال...</div>
             </div>
         </header>
@@ -383,6 +387,93 @@
 
     <script>
         const scriptURL = 'https://script.google.com/macros/s/AKfycbyLIQN4TxyN6CVJKdAKZDwtD2HKP9BVJ_l0BDOs2OZVpvoFXD5xkZIUqljRP-kgr0w/exec';
+        function exportAllClassesToExcel() {
+    let dataSource = typeof allStudentsData !== 'undefined' ? allStudentsData : (typeof data !== 'undefined' ? data : []);
+
+    if (dataSource.length === 0) {
+        const table = document.querySelector('table');
+        if (table) {
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 3) {
+                    dataSource.push([
+                        '', cells[1]?.innerText || '', '', cells[3]?.innerText || '', 
+                        '', '', '', '', '', '', cells[11]?.innerText || '', '', '', '', '', '', '', '', '', '', 
+                        cells[20]?.innerText || '', cells[21]?.innerText || '', '', cells[23]?.innerText || ''
+                    ]);
+                }
+            });
+        }
+    }
+
+    if (dataSource.length === 0) {
+        alert('عذراً، لم يتم العثور على بيانات الطلاب. تأكد من تحميل الشيت أولاً.');
+        return;
+    }
+
+    // دالة تنفيذ التصدير الفعلي بعد التأكد من وجود المكتبة
+    const executeExport = () => {
+        const classList = ['1/1', '1/2', '1/3', '1/4', '2/1', '2/2', '2/3', '3/1', '3/2', '3/3'];
+        let wb = XLSX.utils.book_new();
+        let foundAnyClass = false;
+
+        classList.forEach(className => {
+            const classStudents = dataSource.filter(st => {
+                let c19 = String(st[19] || '').trim();
+                let c20 = String(st[20] || '').trim();
+                let c21 = String(st[21] || '').trim();
+                return c19 === className || c20 === className || c21 === className;
+            });
+
+            if (classStudents.length > 0) {
+                foundAnyClass = true;
+                let excelData = [];
+                
+                excelData.push([`كشف طلاب الفصل (${className})`]);
+                excelData.push([`إجمالي الطلاب بالفصل: ${classStudents.length} طالب وطالبة`]);
+                excelData.push([]);
+
+                excelData.push(['م', 'اسم الطالب / الطالبة', 'النوع', 'الشعبة / المسار', 'الحالة']);
+
+                classStudents.forEach((st, index) => {
+                    let sName = st[1] || st.name || '';
+                    let sGender = st[3] || st.gender || '';
+                    let sTrack = st[20] || st[21] || st.track || '';
+                    let sStatus = st[23] || st[11] || st.status || '';
+
+                    excelData.push([index + 1, sName, sGender, sTrack, sStatus]);
+                });
+
+                let ws = XLSX.utils.aoa_to_sheet(excelData);
+                if(!ws['!views']) ws['!views'] = [{rightToLeft: true}];
+
+                let sheetName = `فصل_${className.replace('/', '-')}`;
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            }
+        });
+
+        if (!foundAnyClass) {
+            alert('لم يتم العثور على أي بيانات مطابقة للفصول المحددة في الشيت.');
+            return;
+        }
+
+        XLSX.writeFile(wb, 'كشوف_جميع_الفصول_المدرسية.xlsx');
+    };
+
+    // التحقق هل مكتبة XLSX محملة أم لا؟ لو مش محملة نحملها طيران وننفذ التصدير بعدها
+    if (typeof XLSX === 'undefined') {
+        let script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload = executeExport;
+        script.onerror = function() {
+            alert('فشل تحميل مكتبة التصدير. تأكد من اتصالك بالإنترنت.');
+        };
+        document.head.appendChild(script);
+    } else {
+        executeExport();
+    }
+}
 
         let allStudentsData = [];
 
