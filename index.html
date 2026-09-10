@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -7,6 +8,7 @@
     <title>نظام إدارة شئون الطلاب - المرحلة الثانوية</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body { font-family: 'Cairo', sans-serif; }
         @media print {
@@ -36,6 +38,9 @@
                 <button onclick="openViewClassesModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition flex items-center gap-2">
                     👁️ عرض وطباعة الفصول
                 </button>
+                <button onclick="exportAllClassesToPDF()" class="bg-red-700 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-red-800 transition">
+    📄 تصدير جميع الفصول بملف PDF واحد متكامل
+</button>
                 <button onclick="exportAllClassesToExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-green-700 transition">
     📊 تصدير جميع الفصول بملف واحد (شيتات منفصلة)
 </button>
@@ -387,7 +392,104 @@
 
     <script>
         const scriptURL = 'https://script.google.com/macros/s/AKfycbyLIQN4TxyN6CVJKdAKZDwtD2HKP9BVJ_l0BDOs2OZVpvoFXD5xkZIUqljRP-kgr0w/exec';
-        function exportAllClassesToExcel() {
+    function executeExcelExport(dataSource) {
+    const classList = ['1/1', '1/2', '1/3', '1/4', '2/1', '2/2', '2/3', '3/1', '3/2', '3/3'];
+    
+    let allExportData = [];
+    let foundAny = false;
+
+    classList.forEach((className) => {
+        const classStudents = dataSource.filter(st => {
+            let c19 = String(st[19] || '').trim();
+            let c20 = String(st[20] || '').trim();
+            let c21 = String(st[21] || '').trim();
+            return c19 === className || c20 === className || c21 === className;
+        });
+
+        if (classStudents.length > 0) {
+            foundAny = true;
+
+            // 1. عنوان الفصل
+            allExportData.push([`كشف طلاب الفصل (${className})`]);
+            
+            // حساب الإحصائيات (بنين، بنات، وتوزيع الشعب/المسارات)
+            let totalStudents = classStudents.length;
+            let boysCount = 0;
+            let girlsCount = 0;
+            let trackCounts = {};
+
+            classStudents.forEach(st => {
+                let sGender = String(st[3] || st.gender || '').trim();
+                if (sGender.includes('ذكر') || sGender.toLowerCase() === 'm' || sGender === 'بنين') {
+                    boysCount++;
+                } else if (sGender.includes('أنثى') || sGender.toLowerCase() === 'f' || sGender === 'بنات') {
+                    girlsCount++;
+                }
+
+                let trackIdx = st[20] !== undefined ? 20 : 21;
+                let sTrack = String(st[trackIdx] || st.track || 'غير محدد').trim();
+                if (sTrack) {
+                    trackCounts[sTrack] = (trackCounts[sTrack] || 0) + 1;
+                }
+            });
+
+            // صياغة نص إحصائية الشعب والمسارات
+            let trackSummaryText = Object.entries(trackCounts)
+                .map(([track, count]) => `${track}: ${count}`)
+                .join(' | ');
+
+            // 2. سطر الإحصائية المفصلة
+            allExportData.push([
+                `الإحصائية: إجمالي الطلاب = ${totalStudents} | بنين = ${boysCount} | بنات = ${girlsCount} | الشعب/المسارات: [${trackSummaryText}]`
+            ]);
+
+            // سطر فارغ قبل الجدول
+            allExportData.push([]);
+
+            // 3. رأس جدول الفصل
+            allExportData.push(['م', 'اسم الطالب / الطالبة', 'النوع', 'الشعبة / المسار', 'مادة التخصص']);
+
+            // 4. صفوف الطلاب الخاصة بالفصل
+            classStudents.forEach((st, index) => {
+                let sName = st[1] || st.name || '';
+                let sGender = st[3] || st.gender || '';
+                
+                let trackIdx = st[20] !== undefined ? 20 : 21;
+                let sTrack = st[trackIdx] || st.track || '';
+                
+                let sSpecialty = '-';
+                if (!className.startsWith('1')) {
+                    sSpecialty = st[trackIdx + 1] || st[trackIdx + 2] || '-';
+                    if (String(sSpecialty).includes('الصف') || String(sSpecialty).includes('الثانوي')) {
+                        sSpecialty = st[trackIdx + 2] || '-';
+                    }
+                }
+
+                allExportData.push([index + 1, sName, sGender, sTrack, sSpecialty]);
+            });
+
+            // مسافة وفواصل بين الفصول وبعضها في نفس الشيت
+            allExportData.push([]);
+            allExportData.push([]);
+        }
+    });
+
+    if (!foundAny) {
+        alert('لم يتم العثور على أي بيانات مطابقة للفصول.');
+        return;
+    }
+
+    let ws = XLSX.utils.aoa_to_sheet(allExportData);
+    if(!ws['!cols']) ws['!cols'] = [];
+    ws['!rtl'] = true;
+
+    let wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "كشوف الفصول والإحصائيات");
+    XLSX.writeFile(wb, 'كشوف_جميع_الفصول_مع_الإحصائيات.xlsx');
+}
+
+// الدالة الأساسية لاستدعاء التصدير
+function exportAllClassesToExcel() {
     let dataSource = typeof allStudentsData !== 'undefined' ? allStudentsData : (typeof data !== 'undefined' ? data : []);
 
     if (dataSource.length === 0) {
@@ -399,8 +501,8 @@
                 if (cells.length > 3) {
                     dataSource.push([
                         '', cells[1]?.innerText || '', '', cells[3]?.innerText || '', 
-                        '', '', '', '', '', '', cells[11]?.innerText || '', '', '', '', '', '', '', '', '', '', 
-                        cells[20]?.innerText || '', cells[21]?.innerText || '', '', cells[23]?.innerText || ''
+                        '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 
+                        cells[20]?.innerText || '', cells[21]?.innerText || '', cells[22]?.innerText || '', ''
                     ]);
                 }
             });
@@ -412,69 +514,145 @@
         return;
     }
 
-    // دالة تنفيذ التصدير الفعلي بعد التأكد من وجود المكتبة
-    const executeExport = () => {
-        const classList = ['1/1', '1/2', '1/3', '1/4', '2/1', '2/2', '2/3', '3/1', '3/2', '3/3'];
-        let wb = XLSX.utils.book_new();
-        let foundAnyClass = false;
-
-        classList.forEach(className => {
-            const classStudents = dataSource.filter(st => {
-                let c19 = String(st[19] || '').trim();
-                let c20 = String(st[20] || '').trim();
-                let c21 = String(st[21] || '').trim();
-                return c19 === className || c20 === className || c21 === className;
-            });
-
-            if (classStudents.length > 0) {
-                foundAnyClass = true;
-                let excelData = [];
-                
-                excelData.push([`كشف طلاب الفصل (${className})`]);
-                excelData.push([`إجمالي الطلاب بالفصل: ${classStudents.length} طالب وطالبة`]);
-                excelData.push([]);
-
-                excelData.push(['م', 'اسم الطالب / الطالبة', 'النوع', 'الشعبة / المسار', 'الحالة']);
-
-                classStudents.forEach((st, index) => {
-                    let sName = st[1] || st.name || '';
-                    let sGender = st[3] || st.gender || '';
-                    let sTrack = st[20] || st[21] || st.track || '';
-                    let sStatus = st[23] || st[11] || st.status || '';
-
-                    excelData.push([index + 1, sName, sGender, sTrack, sStatus]);
-                });
-
-                let ws = XLSX.utils.aoa_to_sheet(excelData);
-                if(!ws['!views']) ws['!views'] = [{rightToLeft: true}];
-
-                let sheetName = `فصل_${className.replace('/', '-')}`;
-                XLSX.utils.book_append_sheet(wb, ws, sheetName);
-            }
-        });
-
-        if (!foundAnyClass) {
-            alert('لم يتم العثور على أي بيانات مطابقة للفصول المحددة في الشيت.');
-            return;
-        }
-
-        XLSX.writeFile(wb, 'كشوف_جميع_الفصول_المدرسية.xlsx');
-    };
-
-    // التحقق هل مكتبة XLSX محملة أم لا؟ لو مش محملة نحملها طيران وننفذ التصدير بعدها
     if (typeof XLSX === 'undefined') {
         let script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-        script.onload = executeExport;
+        script.onload = function() {
+            executeExcelExport(dataSource);
+        };
         script.onerror = function() {
             alert('فشل تحميل مكتبة التصدير. تأكد من اتصالك بالإنترنت.');
         };
         document.head.appendChild(script);
     } else {
-        executeExport();
+        executeExcelExport(dataSource);
     }
 }
 
+function exportAllClassesToPDF() {
+    let dataSource = typeof allStudentsData !== 'undefined' ? allStudentsData : (typeof data !== 'undefined' ? data : []);
+
+    if (dataSource.length === 0) {
+        const table = document.querySelector('table');
+        if (table) {
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 3) {
+                    dataSource.push([
+                        '', cells[1]?.innerText || '', '', cells[3]?.innerText || '', 
+                        '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 
+                        cells[20]?.innerText || '', cells[21]?.innerText || '', cells[22]?.innerText || '', ''
+                    ]);
+                }
+            });
+        }
+    }
+
+    if (dataSource.length === 0) {
+        alert('عذراً، لم يتم العثور على بيانات الطلاب. تأكد من تحميل الشيت أولاً.');
+        return;
+    }
+
+    const classList = ['1/1', '1/2', '1/3', '1/4', '2/1', '2/2', '2/3', '3/1', '3/2', '3/3'];
+    
+    let container = document.createElement('div');
+    container.style.cssText = "font-family: 'Cairo', Tahoma, Arial, sans-serif; direction: rtl; background: #fff; color: #000; width: 794px; padding: 10px;";
+
+    let foundAny = false;
+
+    classList.forEach((className, idx) => {
+        const classStudents = dataSource.filter(st => {
+            let c19 = String(st[19] || '').trim();
+            let c20 = String(st[20] || '').trim();
+            let c21 = String(st[21] || '').trim();
+            return c19 === className || c20 === className || c21 === className;
+        });
+
+        if (classStudents.length > 0) {
+            foundAny = true;
+            
+            let pageBreakStyle = idx > 0 ? "page-break-before: always; margin-top: 5px;" : "";
+            let section = document.createElement('div');
+            section.style.cssText = pageBreakStyle + " page-break-inside: avoid; break-inside: avoid;";
+
+            let html = `
+                <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 4px;">
+                    <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 2px 0; color: #000;">كشف طلاب الفصل (${className})</h2>
+                    <div style="font-size: 11px; color: #555;">إجمالي الطلاب بالفصل: ${classStudents.length} طالب وطالبة</div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; text-align: right; margin-bottom: 10px; table-layout: fixed;">
+                    <thead>
+                        <tr style="background-color: #f2f2f2 !important; page-break-inside: avoid; break-inside: avoid;">
+                            <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 35px; font-size: 11px; color: #000;">م</th>
+                            <th style="border: 1px solid #333; padding: 4px; width: 42%; font-size: 11px; color: #000;">اسم الطالب / الطالبة</th>
+                            <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 14%; font-size: 11px; color: #000;">النوع</th>
+                            <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 20%; font-size: 11px; color: #000;">الشعبة / المسار</th>
+                            <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 24%; font-size: 11px; color: #000;">مادة التخصص</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+classStudents.forEach((st, index) => {
+                let sName = st[1] || st.name || '';
+                let sGender = st[3] || st.gender || '';
+                
+                // تحديد الشعبة (سواء في فهرس 20 أو 21 حسب الشيت) وإحضار العمود الذي يليها مباشرة كمادة تخصص
+                let trackIdx = st[20] !== undefined ? 20 : 21;
+                let sTrack = st[trackIdx] || st.track || '';
+                
+                // مادة التخصص هي العمود الذي يلي عمود الشعبة مباشرة (+1) لفصول ثانية وثالثة فقط
+                let sSpecialty = '-';
+                if (!className.startsWith('1')) {
+                    sSpecialty = st[trackIdx + 1] || st[trackIdx + 2] || '-';
+                    // للتأكد تماماً ألا يتم جلب اسم المرحلة بالخطأ
+                    if (String(sSpecialty).includes('الصف') || String(sSpecialty).includes('الثانوي')) {
+                        sSpecialty = st[trackIdx + 2] || '-';
+                    }
+                }
+
+                let rowBg = index % 2 === 0 ? '#fff' : '#f9f9f9';
+                html += `
+                    <tr style="background-color: ${rowBg} !important; page-break-inside: avoid; break-inside: avoid;">
+                        <td style="border: 1px solid #333; padding: 3px 5px; text-align: center; font-size: 10px; color: #000;">${index + 1}</td>
+                        <td style="border: 1px solid #333; padding: 3px 5px; font-weight: bold; font-size: 10px; color: #000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sName}</td>
+                        <td style="border: 1px solid #333; padding: 3px 5px; text-align: center; font-size: 10px; color: #000;">${sGender}</td>
+                        <td style="border: 1px solid #333; padding: 3px 5px; text-align: center; font-size: 10px; color: #000;">${sTrack}</td>
+                        <td style="border: 1px solid #333; padding: 3px 5px; text-align: center; font-size: 10px; color: #000;">${sSpecialty}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            section.innerHTML = html;
+            container.appendChild(section);
+        }
+    });
+
+    if (!foundAny) {
+        alert('لم يتم العثور على أي بيانات مطابقة للفصول.');
+        return;
+    }
+
+    document.body.appendChild(container);
+
+    let opt = {
+        margin:       [5, 5, 5, 5],
+        filename:     'كشوف_جميع_فصول_المدرسة.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().from(container).set(opt).save().then(() => {
+        document.body.removeChild(container);
+    });
+}
         let allStudentsData = [];
 
         function switchTab(tab) {
