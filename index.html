@@ -1249,6 +1249,21 @@ classStudents.forEach((st, index) => {
                 "مادة التخصص": newSubject
             };
 
+            // 1. تحديث المصفوفة المحلية مباشرة عشان العرض يتحدث في مكانه ومن غير صفوف جديدة مكررة
+            if (typeof allStudentsData !== 'undefined') {
+                let student = allStudentsData.find(st => String(st[0] || st.code || '').trim() === String(studentCode).trim());
+                if (student) {
+                    // تحديث أعمدة الشعبة والمادة حسب الفهارس المعتمدة
+                    if (student[20] !== undefined) {
+                        student[20] = newTrack;
+                        student[21] = newSubject;
+                    } else if (student[21] !== undefined) {
+                        student[21] = newTrack;
+                        student[22] = newSubject;
+                    }
+                }
+            }
+
             fetch(scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -1256,8 +1271,15 @@ classStudents.forEach((st, index) => {
                 body: JSON.stringify(updateData)
             })
             .then(response => {
-                alert('تم تحديث مسار وتخصص الطالب بنجاح في نفس الصف!');
-                fetchStudents();
+                alert('تم تحديث مسار وتخصص الطالب بنجاح!');
+                
+                // تحديث خلايا الصف الحالي مباشرة في الجدول بدلاً من إعادة جلب كل الجدول بشكل خاطئ يولد صفوفاً جديدة
+                let trackCell = row.querySelector('.track-display-cell') || row.cells[3]; // حسب ترتيب أعمدتك
+                let subjectCell = row.querySelector('.subject-display-cell') || row.cells[4];
+                
+                if (trackCell) trackCell.textContent = newTrack;
+                if (subjectCell) subjectCell.textContent = newSubject;
+
             })
             .catch(error => {
                 console.error('Error!', error);
