@@ -1015,20 +1015,39 @@ classStudents.forEach((st, index) => {
             });
         }
 
-        function fetchStudents() {
+       function fetchStudents() {
             const statusEl = document.getElementById('loadingStatus');
-            statusEl.textContent = 'جاري جلب البيانات...';
+            if (statusEl) statusEl.textContent = 'جاري جلب البيانات...';
 
-            fetch(scriptURL + "?action=getStudents")
-            .then(res => res.json())
+            // التأكد من أن رابط السيرفر معرف بشكل صحيح
+            if (typeof scriptURL === 'undefined' || !scriptURL) {
+                console.error('رابط سيرفر جوجل شيت (scriptURL) غير معرف!');
+                if (statusEl) statusEl.textContent = 'خطأ: رابط السيرفر مفقود ❌';
+                return;
+            }
+
+            fetch(scriptURL + "?action=getStudents", {
+                method: 'GET',
+                redirect: 'follow' // لضمان التعامل السليم مع روابط جوجل سكريبت اللي بتعمل إعادة توجيه
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('فشل الاستجابة من السيرفر');
+                return res.json();
+            })
             .then(data => {
                 allStudentsData = data;
                 displayStudents(allStudentsData);
-                statusEl.textContent = 'متصل بـ Google Sheets ✅';
+                if (statusEl) statusEl.textContent = 'متصل بـ Google Sheets ✅';
             })
             .catch(err => {
                 console.log("خطأ في جلب البيانات:", err);
-                statusEl.textContent = 'خطأ في الاتصال ❌';
+                if (statusEl) statusEl.textContent = 'خطأ في الاتصال ❌';
+                
+                // حل احتياطي: لو الاتصال فشل، جرب العرض من الجدول المحلي أو إيقاف التحميل المؤقت
+                const tbody = document.getElementById('studentTableBody');
+                if (tbody && tbody.innerHTML.trim() === '') {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-red-500">تعذر الاتصال بقاعدة البيانات. تأكد من نشر السكريبت كـ Web App وصلاحياته (Anyone).</td></tr>`;
+                }
             });
         }
 
