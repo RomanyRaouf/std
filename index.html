@@ -1,435 +1,1494 @@
-
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>برنامج تسجيل الحضور والغياب</title>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"rel="stylesheet">
-      <style>
-    :root {
-            --primary-color: #2c3e50;
-            --accent-color: #3498db;
-            --success-color: #27ae60;
-            --danger-color: #e74c3c;
-            --warning-color: #e67e22;
-            --bg-color: #f8f9fa;
+    <title>نظام إدارة شئون الطلاب - المرحلة الثانوية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- تحديث استدعاء الخطوط ليشمل الأوزان العريضة جداً -->
+<link href="https://googleapis.com" rel="stylesheet">
+
+<style>
+    body { font-family: 'Cairo', 'Tajawal', sans-serif; }
+    
+    @media print {
+        /* إخفاء كل العناصر عدا نافذة الكشوفات */
+        body > *:not(#viewClassesModal) {
+            display: none !important;
         }
-
-        body {
-            font-family: 'Cairo', 'Tajawal', sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
-
-        .container {
-            max-width: 950px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-
-        h2, h3 { text-align: center; color: var(--primary-color); }
-
-        .controls, .search-box {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 10px;
-            flex-wrap: wrap;
-            background: #f1f2f6;
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        input[type="text"], input[type="date"], select {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 15px;
-        }
-
-        button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: opacity 0.3s;
-        }
-
-        button:hover { opacity: 0.9; }
-        .btn-absent-list { background-color: var(--danger-color); }
-        .btn-reset { background-color: #7f8c8d; }
-
-        .students-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-
-        .student-card {
-            background: #fff;
-            border: 2px solid #ddd;
-            padding: 15px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-
-        .student-card .s-name { font-weight: bold; font-size: 16px; margin-bottom: 5px; }
-        .student-card .s-info { font-size: 12px; color: #666; margin-bottom: 3px; }
-        .student-card .s-class { font-size: 12px; color: var(--accent-color); font-weight: bold; }
-
-        .student-card.selected-absent { background-color: #fdedec; border-color: var(--danger-color); color: var(--danger-color); }
-        .student-card.selected-present { background-color: #e8f8f5; border-color: var(--success-color); color: var(--success-color); }
-
-        .report-section {
-            background: #f1f2f6;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
+        .no-print, .no-print * {
+            display: none !important;
         }
         
-        .loading { text-align: center; font-weight: bold; color: var(--accent-color); padding: 20px; }
-        .saving-indicator { font-size: 11px; color: var(--warning-color); font-weight: bold; margin-top: 4px; }
-    </style>
+        /* ضبط أبعاد الصفحة */
+        @page {
+            size: A4 portrait;
+            margin: 0.8cm 1cm !important;
+        }
+        body, html {
+            background: #fff !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        #viewClassesModal, #viewClassesModal .bg-white, #printableSection {
+            position: static !important;
+            display: block !important;
+            background: none !important;
+            max-height: none !important;
+            height: auto !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            overflow: visible !important;
+        }
+        
+        /* تباعد الفصول وتوليد صفحة جديدة لكل فصل */
+        #printableSection h1, 
+        #printableSection h2, 
+        #printableSection h3, 
+        #printableSection h4 {
+            page-break-before: always !important;
+            break-before: page !important;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+            font-size: 22px !important;
+            font-weight: 900 !important; /* عريض جداً للعنوان الرئيسي */
+            color: #000 !important;
+            margin-bottom: 10px !important;
+        }
+        
+        /* إلغاء الفاصل التلقائي لأول فصل */
+        #printableSection h1:first-child, 
+        #printableSection h2:first-child, 
+        #printableSection h3:first-child, 
+        #printableSection h4:first-child,
+        #printableSection > div:first-child h3 {
+            page-break-before: avoid !important;
+            break-before: avoid !important;
+        }
+
+        /* 4. إعدادات الجدول بالخط العريض المطور */
+        #printableSection table {
+            width: 100% !important;
+            font-family: 'Cairo', 'Tajawal', sans-serif !important;
+            font-size: 11.5px !important; /* حجم فونت صغير يضمن البقاء في صفحة واحدة */
+            border-collapse: collapse !important;
+            margin-top: 5px !important;
+            margin-bottom: 5px !important;
+        }
+        
+        /* جعل الترويسة بلون داكن وخط عريض */
+        #printableSection th {
+            padding: 6px 4px !important;
+            font-size: 13px !important;
+            font-weight: 900 !important; /* أقصى درجة عريضة للخط */
+            background-color: #e5e7eb !important; /* خلفية رمادية أوضح */
+            border: 2px solid #000 !important;
+            text-align: center !important;
+        }
+        
+        /* إجبار أسماء الطلاب والبيانات على الظهور بخط عريض وممتلئ */
+        #printableSection td {
+            padding: 5.5px 5px !important; /* حشو موزون عمودياً */
+            font-weight: 700 !important; /* 🌟 جعل الخط عريض (Bold) ليكون واضحاً جداً رغم صغره */
+            line-height: 1.2 !important;
+            border: 1.5px solid #000 !important; /* تباين قوي للحدود */
+            color: #000 !important;
+        }
+        
+        #printableSection tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        
+        /* نص إجمالي الطلاب بأسفل الجدول بخط عريض */
+        #printableSection .font-bold, 
+        #printableSection div:last-child {
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            margin-top: 8px !important;
+        }
+    }
+</style>
+
+
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800">
 
-<div class="container">
-    <h2>برنامج تسجيل الحضور والغياب </h2>
-    <h2>   إعداد روماني رؤوف</h2>
-    <div class="controls">
-        <div>
-            <label>التاريخ: </label>
-            <input type="date" id="attendanceDate" onchange="onDateChange()">
-        </div>
-        <div style="flex: 1; text-align: left;">
-            <span id="statusMsg" style="font-weight: bold; color: var(--success-color); font-size: 13px;">الحفظ يتم فورياً عند الضغط على أي طالب ✓</span>
-        </div>
-    </div>
+    <div class="container mx-auto p-4 max-w-7xl">
 
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="ابحث بالاسم، الكود، الرقم القومي، أو الفصل..." onkeyup="filterStudents()" style="flex: 1;">
-        <button class="btn-absent-list" onclick="showAbsentTodayList()">أسماء الغائبين اليوم</button>
-        <button class="btn-reset" onclick="resetFilter()">إلغاء الفلترة / الكل</button>
-        <button onclick="generateReport()">تقرير الغياب الشامل</button>
-        <!-- زر تفعيل فلتر الإنذارات -->
-<button onclick="showWarningsReport()" style="background-color: #e74c3c; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px;">
-    ⚠️ تقرير إنذارات الغياب (مضاعفات 7 أيام)
-</button>
+        <header class="bg-indigo-700 text-white p-6 rounded-2xl shadow-lg mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold">نظام إدارة شئون الطلاب</h1>
+                <p class="text-indigo-200 mt-1 text-sm">إعداد روماني رؤوف 01033353302</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <button onclick="openPromotionModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition flex items-center gap-2">
+                    🎓 ترحيل ونتائج الامتحانات
+                </button>
+                <button onclick="openClassDistModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition flex items-center gap-2">
+                    ⚙️ إعداد وتوزيع الفصول الآلي
+                </button>
+                <button onclick="openViewClassesModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition flex items-center gap-2">
+                    👁️ عرض وطباعة الفصول
+                </button>
+                 <div id="loadingStatus" class="text-amber-300 font-semibold text-sm">جاري الاتصال...</div>
+            </div>
+        </header>
+
+        <div class="flex border-b border-gray-200 mb-6 overflow-x-auto">
+            <button onclick="switchTab('add')" id="tabBtn-add" class="py-3 px-6 font-bold text-indigo-600 border-b-2 border-indigo-600 focus:outline-none transition whitespace-nowrap">
+                ➕ إضافة طالب جديد
+            </button>
+            <button onclick="switchTab('tracks')" id="tabBtn-tracks" class="py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition whitespace-nowrap">
+                🔄 تعديل وتحويل الشعب والتخصصات
+            </button>
+            <button onclick="switchTab('stats')" id="tabBtn-stats" class="py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition whitespace-nowrap">
+                📊 إحصائيات الطلاب
+            </button>
+        </div>
+
+        <section id="tabContent-add" class="bg-white p-6 rounded-2xl shadow-md mb-8 border border-gray-100">
+            <h2 class="text-xl font-bold text-indigo-700 mb-4 pb-2 border-b">إضافة طالب جديد</h2>
+            
+            <form id="studentForm" onsubmit="submitStudentData(event)" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الصف الدراسي</label>
+                    <select id="grade" onchange="updateGradeOptions()" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                        <option value="">اختر الصف...</option>
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الشعبة / المسار</label>
+                    <select id="track" onchange="updateSpecializedSubjectsForAdd()" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                        <option value="">اختر الصف أولاً...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">مادة التخصص</label>
+                    <select id="specializedSubject" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">اختر المسار أولاً...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">حالة الطالب</label>
+                    <select id="studentStatus" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                        <option value="نظامي">نظامي</option>
+                        <option value="منازل">منازل</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">كود الطالب</label>
+                    <input type="text" id="code" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-semibold mb-1">اسم الطالب رباعي</label>
+                    <input type="text" id="name" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold mb-1">الرقم القومي (14 رقم)</label>
+                    <input type="text" id="nationalId" maxlength="14" placeholder="أدخل 14 رقم لاستخراج البيانات تلقائياً" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required oninput="extractNationalIdData()">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">النوع</label>
+                    <input type="text" id="gender" class="w-full p-2 border rounded-lg bg-gray-100" readonly>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">تاريخ الميلاد</label>
+                    <input type="text" id="birthDate" class="w-full p-2 border rounded-lg bg-gray-100" readonly>
+                </div>
+
+                <div class="md:col-span-2 grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">سنوات (في 1/10)</label>
+                        <input type="text" id="ageYears" class="w-full p-2 border rounded-lg bg-gray-100 text-center" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">شهور</label>
+                        <input type="text" id="ageMonths" class="w-full p-2 border rounded-lg bg-gray-100 text-center" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">أيام</label>
+                        <input type="text" id="ageDays" class="w-full p-2 border rounded-lg bg-gray-100 text-center" readonly>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">اسم ولي الأمر</label>
+                    <input type="text" id="guardianName" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">وظيفة ولي الأمر</label>
+                    <input type="text" id="guardianJob" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">رقم التليفون</label>
+                    <input type="tel" id="phone" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الحالة الاجتماعية</label>
+                    <select id="socialStatus" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="سداد كامل">سداد كامل</option>
+                        <option value="شئون">شئون</option>
+                        <option value="أيتام">أيتام</option>
+                        <option value="أبناء عاملين">أبناء عاملين</option>
+                        <option value="تنمية مجتمع">تنمية مجتمع</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold mb-1">العنوان</label>
+                    <input type="text" id="address" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الديانة</label>
+                    <select id="religion" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="مسلم">مسلم</option>
+                        <option value="مسيحي">مسيحي</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">اسم الأم</label>
+                    <input type="text" id="motherName" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الرقم القومي للأب</label>
+                    <input type="text" id="fatherNationalId" maxlength="14" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الرقم القومي للأم</label>
+                    <input type="text" id="motherNationalId" maxlength="14" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold mb-1">المدرسة</label>
+                    <select id="prepSchool" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="النواميس الإعدادية بنين">النواميس الإعدادية بنين</option>
+                        <option value="النواميس الإعدادية بنات">النواميس الإعدادية بنات</option>
+                        <option value="منشأة همام الإعدادية المشتركة">منشأة همام الإعدادية المشتركة</option>
+                        <option value="الدكتور عبد الرقيب للتعليم الأساسي">الدكتور عبد الرقيب للتعليم الأساسي</option>
+                        <option value="الشهيد هاني عبد الله الإعدادية بنين">الشهيد هاني عبد الله الإعدادية بنين</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">المجموع</label>
+                    <input type="number" step="0.5" id="totalScore" placeholder="مثال: 250" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">الفصل</label>
+                    <select id="classRoom" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">بدون فصل</option>
+                        <option value="الأول 1">الأول 1</option>
+                        <option value="الأول 2">الأول 2</option>
+                        <option value="الثاني 1">الثاني 1</option>
+                        <option value="الثالث 1">الثالث 1</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">نتيجة الامتحان (للترحيل)</label>
+                    <select id="examStatus" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="ناجح">ناجح</option>
+                        <option value="راسب">راسب</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-full flex justify-end mt-4">
+                    <button type="submit" id="submitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-lg shadow transition">حفظ وإرسال إلى Google Sheets</button>
+                </div>
+
+            </form>
+        </section>
+
+        <section id="tabContent-tracks" class="bg-white p-6 rounded-2xl shadow-md mb-8 border border-gray-100 hidden">
+            <h2 class="text-xl font-bold text-indigo-700 mb-2">تعديل وتحويل الشعب وتحديد مادة التخصص</h2>
+            <p class="text-sm text-gray-500 mb-4">ابحث بجزء من اسم الطالب أو الكود، ثم اختر المسار الجديد ومادة التخصص واضغط حفظ.</p>
+            
+            <div class="mb-4">
+                <input type="text" id="trackSearchInput" oninput="filterTrackStudents()" placeholder="🔍 ابحث بجزء من اسم الطالب أو الكود للتعديل..." class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 shadow-sm">
             </div>
 
-    <div id="loading" class="loading">جاري جلب بيانات الطلاب من الشيت...</div>
+            <div class="overflow-x-auto max-h-[500px]">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-indigo-50 text-indigo-900 border-b sticky top-0">
+                            <th class="p-3">الكود</th>
+                            <th class="p-3">اسم الطالب رباعي</th>
+                            <th class="p-3">الصف الدراسي</th>
+                            <th class="p-3">الشعبة الحالية</th>
+                            <th class="p-3">تغيير الشعبة / المسار الجديد</th>
+                            <th class="p-3">مادة التخصص الجديدة</th>
+                            <th class="p-3 text-center">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trackTableBody" class="divide-y divide-gray-200">
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-    <div id="studentsContainer" class="students-grid"></div>
+        <section id="tabContent-stats" class="bg-white p-6 rounded-2xl shadow-md mb-8 border border-gray-100 hidden">
+            <div class="flex justify-between items-center mb-6 pb-2 border-b">
+                <h2 class="text-xl font-bold text-indigo-700">📊 إحصائيات المدرسة حسب الصفوف الدراسية</h2>
+                <button onclick="renderStatistics()" class="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-lg text-sm font-bold transition">
+                    🔄 تحديث الإحصائيات
+                </button>
+            </div>
+            
+            <div id="statsContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                </div>
+        </section>
 
-    <div id="reportContainer" class="report-section" style="display: none;">
-        <h3 id="reportTitle">تقرير الغياب</h3>
-        <div id="reportContent"></div>
+        <section class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <h2 class="text-xl font-bold text-indigo-700">سجل الطلاب السحابي</h2>
+                
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <select id="filterGrade" onchange="filterStudents()" class="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">كل المراحل</option>
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                    </select>
+
+                    <select id="filterTrack" onchange="filterStudents()" class="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">كل المسارات والشعب</option>
+                        <option value="شعبة عامة">شعبة عامة</option>
+                        <option value="الطب وعلوم الحياة">الطب وعلوم الحياة</option>
+                        <option value="الهندسة وعلوم الحاسب">الهندسة وعلوم الحاسب</option>
+                        <option value="الآداب والفنون">الآداب والفنون</option>
+                        <option value="المحاسبة وإدارة الأعمال">المحاسبة وإدارة الأعمال</option>
+                        <option value="علمي علوم">علمي علوم</option>
+                        <option value="علمي رياضيات">علمي رياضيات</option>
+                        <option value="أدبي">أدبي</option>
+                    </select>
+
+                    <input type="text" id="searchInput" onkeyup="filterStudents()" placeholder="ابحث بجزء من الاسم أو الكود..." class="p-2 border rounded-lg w-full md:w-48 focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-indigo-50 text-indigo-900 border-b">
+                            <th class="p-3">الكود</th>
+                            <th class="p-3">الاسم</th>
+                            <th class="p-3">المرحلة</th>
+                            <th class="p-3">الشعبة / المسار</th>
+                            <th class="p-3">مادة التخصص</th>
+                            <th class="p-3">المجموع</th>
+                            <th class="p-3">الفصل</th>
+                            <th class="p-3">النتيجة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody" class="divide-y divide-gray-200">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
     </div>
-</div>
 
-<script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzoTDZxgnnctIBSw6y0o97tNhID6e2ZPjHyy8MBFOIObOCCItD_fT_8ccmTO_htYNZw/exec";
-    function showWarningsReport() {
-    let reportContainer = document.getElementById('reportContainer');
-    let reportTitle = document.getElementById('reportTitle');
-    let reportContent = document.getElementById('reportContent');
-    
-    reportContainer.style.display = 'block';
-    reportTitle.textContent = "تقرير إنذارات الغياب (الوصول لمضاعفات 7 أيام)";
+    <div id="classModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 class="text-xl font-bold text-indigo-700 mb-4">توزيع الفصول الآلي</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">اختر المرحلة</label>
+                    <select id="targetGradeDist" class="w-full p-2 border rounded-lg">
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">عدد الفصول المطلوبة</label>
+                    <input type="number" id="numClasses" value="3" min="1" max="20" class="w-full p-2 border rounded-lg">
+                </div>
+                <p class="text-xs text-gray-500">ملاحظة: سيتم توزيع طلاب المرحلة المحددة بالتساوي على الفصول وحفظها مباشرة.</p>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeClassDistModal()" class="px-4 py-2 bg-gray-200 rounded-lg">إلغاء</button>
+                <button onclick="distributeClasses()" id="distBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">بدء التوزيع والحفظ</button>
+            </div>
+        </div>
+    </div>
 
-    // فلترة الطلاب الذين لديهم غياب ومضاعفات الرقم 7 (أكبر من أو يساوي 7 وباقي قسمة الغياب على 7 يساوي صفر)
-    let warningStudents = studentsData.filter(student => {
-        let abs = Number(student.absentCount) || 0;
-        return abs > 0 && abs % 7 === 0;
+    <!-- كود الـ Modal بعد إضافة كلاسات الـ no-print في الأماكن الصحيحة لتنظيف الطباعة -->
+    <div id="viewClassesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-4xl w-full shadow-2xl max-h-[90vh] flex flex-col">
+            
+            <!-- هيدر المودال وأزرار الإغلاق والطباعة (لن تظهر بالطباعة) -->
+            <div class="flex justify-between items-center mb-4 border-b pb-3 no-print">
+                <h3 class="text-xl font-bold text-sky-700">عرض وكشوفات الفصول الدراسية</h3>
+                <div class="flex gap-2">
+                    <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1">
+                        🖨️ طباعة الكشوف
+                    </button>
+                    <button onclick="closeViewClassesModal()" class="px-3 py-2 bg-gray-200 rounded-lg font-bold">إغلاق</button>
+                </div>
+            </div>
+
+            <!-- قائمة اختيار المرحلة (لن تظهر بالطباعة) -->
+            <div class="mb-4 flex gap-4 items-center no-print">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">اختر المرحلة</label>
+                    <select id="viewGradeSelect" onchange="renderClassLists()" class="p-2 border rounded-lg text-sm">
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- حاوية الفصول (أثناء الطباعة سيتم إزالة أشرطة التمرير والارتفاعات تلقائياً عبر الـ CSS) -->
+            <div id="printableSection" class="overflow-y-auto flex-1 space-y-6 p-2">
+            </div>
+        </div>
+    </div>
+
+    <div id="promotionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 class="text-xl font-bold text-amber-700 mb-2">تحديث نتائج الامتحانات والترحيل السنوي</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                - الأول الناجح ينتقل للثاني.<br>
+                - الثاني الناجح ينتقل للثالث.<br>
+                - الثالث الناجح يتخرج.
+            </p>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closePromotionModal()" class="px-4 py-2 bg-gray-200 rounded-lg">إلغاء</button>
+                <button onclick="executePromotion()" class="px-4 py-2 bg-amber-600 text-white rounded-lg font-bold">تأكيد التنفيذ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwGyljkHZ2zBvJt6xrNf2ryBiMgIECssW-v0gdSAqVtNNxZHIfUODzSZe-jZATRRBxN/exec';
+    // ابحث عن الدالة المسؤول عن بناء الفصول وعدّلها لتصبح بهذا الشكل:
+// التعديل المطلوب داخل دالة توليد الفصول في الجافا سكريبت:
+function renderClassLists() {
+    const printableSection = document.getElementById('printableSection');
+    let html = '';
+
+    // هنا الـ Loop الذي يمر على الفصول الدراسية لديك
+    classes.forEach(cls => {
+        
+        // 🌟 السر هنا: يجب وضع كلاس class-page-break في بداية كل فصل
+        html += `
+        <div class="class-page-break bg-white p-4 mb-6">
+            
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-xl font-bold text-sky-700">فصل: ${cls.name}</h3>
+            </div>
+
+            <table class="w-full text-right border-collapse border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-2 border">م</th>
+                        <th class="p-2 border">الاسم</th>
+                        <th class="p-2 border">النوع</th>
+                        <th class="p-2 border">الشعبة / المسار</th>
+                        <th class="p-2 border">مادة التخصص</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- هنا كود توليد صفوف الطلاب داخل الجدول الخاص بهذا الفصل فقط -->
+                </tbody>
+            </table>
+
+            <div class="mt-2 font-bold text-gray-700">إجمالي الطلاب: ${cls.students.length}</div>
+        </div>
+        `;
     });
 
-    if (warningStudents.length === 0) {
-        reportContent.innerHTML = '<p style="text-align: center; color: #555; padding: 15px;">لا يوجد طلاب مستحقون لإنذارات حالياً (الغياب ليس من مضاعفات الـ 7 أيام).</p>';
+    printableSection.innerHTML = html;
+}
+
+
+    function executeExcelExport(dataSource) {
+    const classList = ['1/1', '1/2', '1/3', '1/4', '2/1', '2/2', '2/3', '3/1', '3/2', '3/3'];
+    
+    let allExportData = [];
+    let foundAny = false;
+
+    classList.forEach((className) => {
+        const classStudents = dataSource.filter(st => {
+            let c19 = String(st[19] || '').trim();
+            let c20 = String(st[20] || '').trim();
+            let c21 = String(st[21] || '').trim();
+            return c19 === className || c20 === className || c21 === className;
+        });
+
+        if (classStudents.length > 0) {
+            foundAny = true;
+
+            // 1. عنوان الفصل
+            allExportData.push([`كشف طلاب الفصل (${className})`]);
+            
+            // حساب الإحصائيات (بنين، بنات، وتوزيع الشعب/المسارات)
+            let totalStudents = classStudents.length;
+            let boysCount = 0;
+            let girlsCount = 0;
+            let trackCounts = {};
+
+            classStudents.forEach(st => {
+                let sGender = String(st[3] || st.gender || '').trim();
+                if (sGender.includes('ذكر') || sGender.toLowerCase() === 'm' || sGender === 'بنين') {
+                    boysCount++;
+                } else if (sGender.includes('أنثى') || sGender.toLowerCase() === 'f' || sGender === 'بنات') {
+                    girlsCount++;
+                }
+
+                let trackIdx = st[20] !== undefined ? 20 : 21;
+                let sTrack = String(st[trackIdx] || st.track || 'غير محدد').trim();
+                if (sTrack) {
+                    trackCounts[sTrack] = (trackCounts[sTrack] || 0) + 1;
+                }
+            });
+
+            // صياغة نص إحصائية الشعب والمسارات
+            let trackSummaryText = Object.entries(trackCounts)
+                .map(([track, count]) => `${track}: ${count}`)
+                .join(' | ');
+
+            // 2. سطر الإحصائية المفصلة
+            allExportData.push([
+                `الإحصائية: إجمالي الطلاب = ${totalStudents} | بنين = ${boysCount} | بنات = ${girlsCount} | الشعب/المسارات: [${trackSummaryText}]`
+            ]);
+
+            // سطر فارغ قبل الجدول
+            allExportData.push([]);
+
+            // 3. رأس جدول الفصل
+            allExportData.push(['م', 'اسم الطالب / الطالبة', 'النوع', 'الشعبة / المسار', 'مادة التخصص']);
+
+            // 4. صفوف الطلاب الخاصة بالفصل
+            classStudents.forEach((st, index) => {
+                let sName = st[1] || st.name || '';
+                let sGender = st[3] || st.gender || '';
+                
+                let trackIdx = st[20] !== undefined ? 20 : 21;
+                let sTrack = st[trackIdx] || st.track || '';
+                
+                let sSpecialty = '-';
+                if (!className.startsWith('1')) {
+                    sSpecialty = st[trackIdx + 1] || st[trackIdx + 2] || '-';
+                    if (String(sSpecialty).includes('الصف') || String(sSpecialty).includes('الثانوي')) {
+                        sSpecialty = st[trackIdx + 2] || '-';
+                    }
+                }
+
+                allExportData.push([index + 1, sName, sGender, sTrack, sSpecialty]);
+            });
+
+            // مسافة وفواصل بين الفصول وبعضها في نفس الشيت
+            allExportData.push([]);
+            allExportData.push([]);
+        }
+    });
+
+    if (!foundAny) {
+        alert('لم يتم العثور على أي بيانات مطابقة للفصول.');
         return;
     }
 
-    // جلب تاريخ اليوم بصيغة (YYYY-MM-DD)
-    let todayDate = new Date().toISOString().split('T')[0];
+    let ws = XLSX.utils.aoa_to_sheet(allExportData);
+    if(!ws['!cols']) ws['!cols'] = [];
+    ws['!rtl'] = true;
 
-    let html = `<table border="1" cellpadding="8" style="width:100%; border-collapse: collapse; text-align: center; background: #fff;">
-        <tr style="background:#f2dede; color: #a94442;">
-            <th>اسم الطالب</th>
-            <th>الكود</th>
-            <th>الفصل</th>
-            <th>إجمالي أيام الغياب</th>
-            <th>نوع الإنذار</th>
-            <th>تاريخ الإنذار</th>
-        </tr>`;
-
-    warningStudents.forEach(student => {
-        let abs = Number(student.absentCount);
-        let warningNumber = abs / 7; // حساب رقم الإنذار (7 أيام = إنذار 1، 14 يوم = إنذار 2، وهكذا)
-
-        html += `<tr>
-            <td><strong>${student.name}</strong></td>
-            <td>${student.code}</td>
-            <td>${student.classRoom || '-'}</td>
-            <td><strong style="color:red; font-size:16px;">${abs} أيام</strong></td>
-            <td><span style="background: #d9534f; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold;">إنذار رقم ${warningNumber}</span></td>
-            <td><span style="color: #333; font-weight: bold;">${todayDate}</span></td>
-        </tr>`;
-    });
-
-    html += `</table>`;
-    reportContent.innerHTML = html;
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    let wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "كشوف الفصول والإحصائيات");
+    XLSX.writeFile(wb, 'كشوف_جميع_الفصول_مع_الإحصائيات.xlsx');
 }
-    let studentsData = [];
-    let headersData = [];
-    
-    document.getElementById('attendanceDate').valueAsDate = new Date();
 
-    async function fetchStudents() {
-        try {
-            let response = await fetch(`${WEB_APP_URL}?action=getStudents`);
-            let result = await response.json();
-            headersData = result.headers;
-            studentsData = result.students;
+// الدالة الأساسية لاستدعاء التصدير
+function exportAllClassesToExcel() {
+    let dataSource = typeof allStudentsData !== 'undefined' ? allStudentsData : (typeof data !== 'undefined' ? data : []);
+
+    if (dataSource.length === 0) {
+        const table = document.querySelector('table');
+        if (table) {
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 3) {
+                    dataSource.push([
+                        '', cells[1]?.innerText || '', '', cells[3]?.innerText || '', 
+                        '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 
+                        cells[20]?.innerText || '', cells[21]?.innerText || '', cells[22]?.innerText || '', ''
+                    ]);
+                }
+            });
+        }
+    }
+
+    if (dataSource.length === 0) {
+        alert('عذراً، لم يتم العثور على بيانات الطلاب. تأكد من تحميل الشيت أولاً.');
+        return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+        let script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload = function() {
+            executeExcelExport(dataSource);
+        };
+        script.onerror = function() {
+            alert('فشل تحميل مكتبة التصدير. تأكد من اتصالك بالإنترنت.');
+        };
+        document.head.appendChild(script);
+    } else {
+        executeExcelExport(dataSource);
+    }
+}
+
+function exportAllClassesToPDF() {
+    let dataSource = typeof allStudentsData !== 'undefined' ? allStudentsData : (typeof data !== 'undefined' ? data : []);
+
+    if (dataSource.length === 0) {
+        const table = document.querySelector('table');
+        if (table) {
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 3) {
+                    dataSource.push([
+                        '', cells[1]?.innerText || '', '', cells[3]?.innerText || '', 
+                        '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 
+                        cells[20]?.innerText || '', cells[21]?.innerText || '', cells[22]?.innerText || '', ''
+                    ]);
+                }
+            });
+        }
+    }
+
+    if (dataSource.length === 0) {
+        alert('عذراً، لم يتم العثور على بيانات الطلاب. تأكد من تحميل الشيت أولاً.');
+        return;
+    }
+
+    const classList = ['1/1', '1/2', '1/3', '1/4', '2/1', '2/2', '2/3', '3/1', '3/2', '3/3'];
+    
+    let container = document.createElement('div');
+    container.style.cssText = "font-family: 'Cairo', Tahoma, Arial, sans-serif; direction: rtl; background: #fff; color: #000; width: 794px; padding: 10px;";
+
+    let foundAny = false;
+
+    classList.forEach((className, idx) => {
+        const classStudents = dataSource.filter(st => {
+            let c19 = String(st[19] || '').trim();
+            let c20 = String(st[20] || '').trim();
+            let c21 = String(st[21] || '').trim();
+            return c19 === className || c20 === className || c21 === className;
+        });
+
+        if (classStudents.length > 0) {
+            foundAny = true;
             
-            studentsData.forEach(s => {
-                s.tempSelection = 'present';
+            let pageBreakStyle = idx > 0 ? "page-break-before: always; margin-top: 5px;" : "";
+            let section = document.createElement('div');
+            section.style.cssText = pageBreakStyle + " page-break-inside: avoid; break-inside: avoid;";
+
+            let html = `
+                <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 4px;">
+                    <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 2px 0; color: #000;">كشف طلاب الفصل (${className})</h2>
+                    <div style="font-size: 11px; color: #555;">إجمالي الطلاب بالفصل: ${classStudents.length} طالب وطالبة</div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; text-align: right; margin-bottom: 10px; table-layout: fixed;">
+                    <thead>
+                        <tr style="background-color: #f2f2f2 !important; page-break-inside: avoid; break-inside: avoid;">
+                            <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 35px; font-size: 11px; color: #000;">م</th>
+                            <th style="border: 1px solid #333; padding: 4px; width: 42%; font-size: 11px; color: #000;">اسم الطالب / الطالبة</th>
+                            <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 14%; font-size: 11px; color: #000;">النوع</th>
+                            <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 20%; font-size: 11px; color: #000;">الشعبة / المسار</th>
+                            <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 24%; font-size: 11px; color: #000;">مادة التخصص</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+classStudents.forEach((st, index) => {
+                let sName = st[1] || st.name || '';
+                let sGender = st[3] || st.gender || '';
+                
+                // تحديد الشعبة (سواء في فهرس 20 أو 21 حسب الشيت) وإحضار العمود الذي يليها مباشرة كمادة تخصص
+                let trackIdx = st[20] !== undefined ? 20 : 21;
+                let sTrack = st[trackIdx] || st.track || '';
+                
+                // مادة التخصص هي العمود الذي يلي عمود الشعبة مباشرة (+1) لفصول ثانية وثالثة فقط
+                let sSpecialty = '-';
+                if (!className.startsWith('1')) {
+                    sSpecialty = st[trackIdx + 1] || st[trackIdx + 2] || '-';
+                    // للتأكد تماماً ألا يتم جلب اسم المرحلة بالخطأ
+                    if (String(sSpecialty).includes('الصف') || String(sSpecialty).includes('الثانوي')) {
+                        sSpecialty = st[trackIdx + 2] || '-';
+                    }
+                }
+
+                let rowBg = index % 2 === 0 ? '#fff' : '#f9f9f9';
+                html += `
+                    <tr style="background-color: ${rowBg} !important; page-break-inside: avoid; break-inside: avoid;">
+                        <td style="border: 1px solid #333; padding: 3px 5px; text-align: center; font-size: 10px; color: #000;">${index + 1}</td>
+                        <td style="border: 1px solid #333; padding: 3px 5px; font-weight: bold; font-size: 10px; color: #000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sName}</td>
+                        <td style="border: 1px solid #333; padding: 3px 5px; text-align: center; font-size: 10px; color: #000;">${sGender}</td>
+                        <td style="border: 1px solid #333; padding: 3px 5px; text-align: center; font-size: 10px; color: #000;">${sTrack}</td>
+                        <td style="border: 1px solid #333; padding: 3px 5px; text-align: center; font-size: 10px; color: #000;">${sSpecialty}</td>
+                    </tr>
+                `;
             });
 
-            updateStudentSelectionsFromHistory();
-            document.getElementById('loading').style.display = 'none';
-            renderStudents(studentsData);
-        } catch (error) {
-            document.getElementById('loading').textContent = 'حدث خطأ أثناء الاتصال بملف الشيت!';
-        }
-    }
-
-    function updateStudentSelectionsFromHistory() {
-        let currentDate = document.getElementById('attendanceDate').value;
-        let dateIndex = headersData.indexOf(currentDate);
-        
-        studentsData.forEach(student => {
-            if (dateIndex !== -1 && student.attendance[dateIndex]) {
-                student.tempSelection = (student.attendance[dateIndex] === 'غياب') ? 'absent' : 'present';
-            } else {
-                student.tempSelection = 'present';
-            }
-        });
-    }
-
-    function onDateChange() {
-        updateStudentSelectionsFromHistory();
-        renderStudents(studentsData);
-        document.getElementById('reportContainer').style.display = 'none';
-    }
-
- function renderStudents(list) {
-        const container = document.getElementById('studentsContainer');
-        container.innerHTML = '';
-
-        if (list.length === 0) {
-            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #777; padding: 20px;">لا توجد نتائج مطابقة للبحث</div>';
-            return;
-        }
-
-        list.forEach(student => {
-            const card = document.createElement('div');
-            card.className = 'student-card';
-            
-            if (student.tempSelection === 'absent') {
-                card.classList.add('selected-absent');
-            } else {
-                card.classList.add('selected-present');
-            }
-
-            let statusTextLabel = student.tempSelection === 'present' ? 'حاضر' : 'غياب';
-
-            card.innerHTML = `
-                <div class="s-name" style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">${student.name}</div>
-                <div class="s-info" style="font-size: 13px; color: #555; margin-bottom: 4px;">الكود: ${student.code} | القومي:</div>
-                <div class="s-info" style="font-size: 13px; color: #555; margin-bottom: 4px;">${student.nationalId}</div>
-                <div class="s-class" style="font-size: 14px; font-weight: bold; color: var(--accent-color); margin-bottom: 6px;">الفصل: ${student.classRoom || 'غير محدد'}</div>
-                <div style="font-size: 15px; font-weight: bold; color: #c0392b; margin-bottom: 6px;">أيام الغياب: <span style="font-size: 17px;">${student.absentCount ?? 0}</span></div>
-                <div style="font-size: 14px; font-weight: bold; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,0.1);">الحالة: ${statusTextLabel}</div>
-                <div class="saving-indicator" id="indicator-${student.row}"></div>
+            html += `
+                    </tbody>
+                </table>
             `;
+
+            section.innerHTML = html;
+            container.appendChild(section);
+        }
+    });
+
+    if (!foundAny) {
+        alert('لم يتم العثور على أي بيانات مطابقة للفصول.');
+        return;
+    }
+
+    document.body.appendChild(container);
+
+    let opt = {
+        margin:       [5, 5, 5, 5],
+        filename:     'كشوف_جميع_فصول_المدرسة.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().from(container).set(opt).save().then(() => {
+        document.body.removeChild(container);
+    });
+}
+        let allStudentsData = [];
+
+        function switchTab(tab) {
+            document.getElementById('tabContent-add').classList.toggle('hidden', tab !== 'add');
+            document.getElementById('tabContent-tracks').classList.toggle('hidden', tab !== 'tracks');
+            document.getElementById('tabContent-stats').classList.toggle('hidden', tab !== 'stats');
             
-            card.onclick = () => toggleAndSave(student, card);
-            container.appendChild(card);
-        });
-    }
+            document.getElementById('tabBtn-add').className = tab === 'add' 
+                ? 'py-3 px-6 font-bold text-indigo-600 border-b-2 border-indigo-600 focus:outline-none transition whitespace-nowrap' 
+                : 'py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition whitespace-nowrap';
+            
+            document.getElementById('tabBtn-tracks').className = tab === 'tracks' 
+                ? 'py-3 px-6 font-bold text-indigo-600 border-b-2 border-indigo-600 focus:outline-none transition whitespace-nowrap' 
+                : 'py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition whitespace-nowrap';
 
-    async function toggleAndSave(student, cardElement) {
-        let currentDate = document.getElementById('attendanceDate').value;
-        if (!currentDate) {
-            alert("يرجى اختيار التاريخ أولاً!");
-            return;
-        }
-
-        student.tempSelection = (student.tempSelection === 'present') ? 'absent' : 'present';
-        
-        if (student.tempSelection === 'absent') {
-            cardElement.className = 'student-card selected-absent';
-            cardElement.querySelector('div:nth-child(4)').textContent = 'الحالة: غياب';
-        } else {
-            cardElement.className = 'student-card selected-present';
-            cardElement.querySelector('div:nth-child(4)').textContent = 'الحالة: حاضر';
-        }
-
-        let indicator = document.getElementById(`indicator-${student.row}`);
-        if(indicator) indicator.textContent = "جاري الحفظ...";
-
-        let statusToSend = (student.tempSelection === 'present') ? 'حاضر' : 'غياب';
-        let targetUrl = `${WEB_APP_URL}?action=saveInstant&row=${student.row}&date=${currentDate}&status=${encodeURIComponent(statusToSend)}`;
-
-        const img = new Image();
-        img.onload = img.onerror = () => {
-            if(indicator) {
-                indicator.textContent = "تم الحفظ ✓";
-                setTimeout(() => { indicator.textContent = ""; }, 1500);
+            document.getElementById('tabBtn-stats').className = tab === 'stats' 
+                ? 'py-3 px-6 font-bold text-indigo-600 border-b-2 border-indigo-600 focus:outline-none transition whitespace-nowrap' 
+                : 'py-3 px-6 font-bold text-gray-500 hover:text-indigo-600 border-b-2 border-transparent focus:outline-none transition whitespace-nowrap';
+            
+            if(tab === 'tracks') {
+                loadStudentsForTracks();
+            } else if(tab === 'stats') {
+                renderStatistics();
             }
+        }
+
+        function openClassDistModal() { document.getElementById('classModal').classList.remove('hidden'); document.getElementById('classModal').classList.add('flex'); }
+        function closeClassDistModal() { document.getElementById('classModal').classList.add('hidden'); document.getElementById('classModal').classList.remove('flex'); }
+        
+        function openViewClassesModal() { 
+            document.getElementById('viewClassesModal').classList.remove('hidden'); 
+            document.getElementById('viewClassesModal').classList.add('flex');
+            renderClassLists();
+        }
+        function closeViewClassesModal() { document.getElementById('viewClassesModal').classList.add('hidden'); document.getElementById('viewClassesModal').classList.remove('flex'); }
+
+        function openPromotionModal() { document.getElementById('promotionModal').classList.remove('hidden'); document.getElementById('promotionModal').classList.add('flex'); }
+        function closePromotionModal() { document.getElementById('promotionModal').classList.add('hidden'); document.getElementById('promotionModal').classList.remove('flex'); }
+
+        const specializedSubjectsMap = {
+            'الطب وعلوم الحياة': ['فيزياء', 'رياضيات'],
+            'الهندسة وعلوم الحاسب': ['كيمياء', 'برمجة'],
+            'الآداب والفنون': ['علم النفس', 'اللغة الفرنسية'],
+            'المحاسبة وإدارة الأعمال': ['محاسبة', 'إدارة']
         };
-        img.src = targetUrl;
 
-        let dateIndex = headersData.indexOf(currentDate);
-        if (dateIndex === -1) {
-            headersData.push(currentDate);
-            dateIndex = headersData.length - 1;
-        }
-        student.attendance[dateIndex] = statusToSend;
-    }
+        function updateGradeOptions() {
+            const grade = document.getElementById('grade').value;
+            const trackSelect = document.getElementById('track');
+            const subSelect = document.getElementById('specializedSubject');
+            
+            trackSelect.innerHTML = '';
+            subSelect.innerHTML = '<option value="">اختر المسار أولاً...</option>';
 
-    function showAbsentTodayList() {
-        let currentDate = document.getElementById('attendanceDate').value;
-        let absentStudents = studentsData.filter(s => s.tempSelection === 'absent');
-        
-        let reportContainer = document.getElementById('reportContainer');
-        let reportTitle = document.getElementById('reportTitle');
-        let reportContent = document.getElementById('reportContent');
-        
-        reportContainer.style.display = 'block';
-        reportTitle.textContent = `قائمة الطلاب الغائبين ليوم (${currentDate})`;
-
-        if (absentStudents.length === 0) {
-            reportContent.innerHTML = '<p style="text-align:center; color: var(--success-color); font-weight: bold;">ممتاز! لا توجد حالات غياب مسجلة في هذا التاريخ.</p>';
-            return;
-        }
-
-        let html = `<table border="1" cellpadding="8" style="width:100%; border-collapse: collapse; text-align: center;">
-            <tr style="background:#e74c3c; color:white;">
-                <th>مسلسل</th>
-                <th>اسم الطالب</th>
-                <th>الكود</th>
-                <th>الفصل</th>
-                <th>الرقم القومي</th>
-            </tr>`;
-
-        absentStudents.forEach((student, index) => {
-            html += `<tr>
-                <td>${index + 1}</td>
-                <td>${student.name}</td>
-                <td>${student.code}</td>
-                <td><strong>${student.classRoom || 'غير محدد'}</strong></td>
-                <td>${student.nationalId}</td>
-            </tr>`;
-        });
-
-        html += `</table>`;
-        reportContent.innerHTML = html;
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }
-
-    function resetFilter() {
-        document.getElementById('searchInput').value = '';
-        document.getElementById('reportContainer').style.display = 'none';
-        renderStudents(studentsData);
-    }
-
-    function filterStudents() {
-        let query = document.getElementById('searchInput').value.toLowerCase();
-        let filtered = studentsData.filter(s => 
-            String(s.name).toLowerCase().includes(query) ||
-            String(s.code).toLowerCase().includes(query) ||
-            String(s.nationalId).toLowerCase().includes(query) ||
-            String(s.classRoom).toLowerCase().includes(query)
-        );
-        renderStudents(filtered);
-    }
-
-    function generateReport() {
-        let reportContainer = document.getElementById('reportContainer');
-        let reportTitle = document.getElementById('reportTitle');
-        let reportContent = document.getElementById('reportContent');
-        
-        reportContainer.style.display = 'block';
-        reportTitle.textContent = "تقرير الغياب الشامل لكل الأيام";
-
-        let html = `<table border="1" cellpadding="8" style="width:100%; border-collapse: collapse; text-align: center;">
-            <tr style="background:#ddd;">
-                <th>اسم الطالب</th>
-                <th>الكود</th>
-                <th>الفصل</th>
-                <th>إجمالي أيام الغياب</th>
-            </tr>`;
-
-        studentsData.forEach(student => {
-            let absentDaysCount = 0;
-            for (let i = 4; i < headersData.length; i++) { // يبدأ من العمود الرابع (حسب ترتيب أعمدة الشيت الجديدة)
-                if (student.attendance[i] === 'غياب') absentDaysCount++;
+            let options = [];
+            if (grade === 'الصف الأول الثانوي') {
+                options = ['شعبة عامة'];
+            } else if (grade === 'الصف الثاني الثانوي') {
+                options = [
+                    'الطب وعلوم الحياة',
+                    'الهندسة وعلوم الحاسب',
+                    'الآداب والفنون',
+                    'المحاسبة وإدارة الأعمال'
+                ];
+            } else if (grade === 'الصف الثالث الثانوي') {
+                options = [
+                    'علمي علوم',
+                    'علمي رياضيات',
+                    'أدبي'
+                ];
+            } else {
+                options = ['اختر الصف أولاً...'];
             }
-            html += `<tr><td>${student.name}</td><td>${student.code}</td><td>${student.classRoom || '-'}</td><td><strong style="color:red;">${absentDaysCount} أيام</strong></td></tr>`;
-        });
 
-        html += `</table>`;
-        reportContent.innerHTML = html;
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt === 'اختر الصف أولاً...' ? '' : opt;
+                el.textContent = opt;
+                trackSelect.appendChild(el);
+            });
 
-    fetchStudents();
-    function generateReport() {
-        let reportContainer = document.getElementById('reportContainer');
-        let reportTitle = document.getElementById('reportTitle');
-        let reportContent = document.getElementById('reportContent');
+            if(grade === 'الصف الثاني الثانوي') {
+                updateSpecializedSubjectsForAdd();
+            } else {
+                subSelect.innerHTML = '<option value="عام">عام</option>';
+            }
+        }
+
+        function updateSpecializedSubjectsForAdd() {
+            const track = document.getElementById('track').value;
+            const subSelect = document.getElementById('specializedSubject');
+            subSelect.innerHTML = '';
+
+            if (specializedSubjectsMap[track]) {
+                specializedSubjectsMap[track].forEach(sub => {
+                    const el = document.createElement('option');
+                    el.value = sub;
+                    el.textContent = sub;
+                    subSelect.appendChild(el);
+                });
+            } else {
+                const el = document.createElement('option');
+                el.value = 'عام';
+                el.textContent = 'عام';
+                subSelect.appendChild(el);
+            }
+        }
+
+        function updateRowSubjects(selectElement) {
+            const row = selectElement.closest('tr');
+            const subjectSelect = row.querySelector('.subject-change-select');
+            const selectedTrack = selectElement.value;
+
+            subjectSelect.innerHTML = '';
+            if (specializedSubjectsMap[selectedTrack]) {
+                specializedSubjectsMap[selectedTrack].forEach(sub => {
+                    const el = document.createElement('option');
+                    el.value = sub;
+                    el.textContent = sub;
+                    subjectSelect.appendChild(el);
+                });
+            } else {
+                const el = document.createElement('option');
+                el.value = 'عام';
+                el.textContent = 'عام';
+                subjectSelect.appendChild(el);
+            }
+        }
+
+        function extractNationalIdData() {
+            const nationalId = document.getElementById('nationalId').value;
+            if (nationalId.length === 14) {
+                const century = nationalId[0] === '2' ? 1900 : 2000;
+                const year = century + parseInt(nationalId.substr(1, 2));
+                const month = nationalId.substr(3, 2);
+                const day = nationalId.substr(5, 2);
+                
+                document.getElementById('birthDate').value = `${year}-${month}-${day}`;
+                
+                const genderDigit = parseInt(nationalId[12]);
+                const gender = genderDigit % 2 === 0 ? 'أنثى' : 'ذكر';
+                document.getElementById('gender').value = gender;
+
+                const birthDateObj = new Date(year, month - 1, day);
+                const targetDate = new Date(2026, 9, 1); 
+                
+                let years = targetDate.getFullYear() - birthDateObj.getFullYear();
+                let months = targetDate.getMonth() - birthDateObj.getMonth();
+                let days = targetDate.getDate() - birthDateObj.getDate();
+
+                if (days < 0) {
+                    months--;
+                    days += new Date(targetDate.getFullYear(), targetDate.getMonth(), 0).getDate();
+                }
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+
+                document.getElementById('ageYears').value = years;
+                document.getElementById('ageMonths').value = months;
+                document.getElementById('ageDays').value = days;
+            }
+        }
+
+        function submitStudentData(event) {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'جاري الحفظ...';
+
+            var studentData = {
+                "action": "add",
+                "كود الطالب": document.getElementById("code").value,
+                "اسم الطالب رباعي": document.getElementById("name").value,
+                "الرقم القومي": document.getElementById("nationalId").value,
+                "النوع": document.getElementById("gender").value,
+                "تاريخ الميلاد": document.getElementById("birthDate").value,
+                "سنوات": document.getElementById("ageYears").value,
+                "شهور": document.getElementById("ageMonths").value,
+                "أيام": document.getElementById("ageDays").value,
+                "اسم ولي الأمر": document.getElementById("guardianName").value,
+                "وظيفة ولي الأمر": document.getElementById("guardianJob").value,
+                "رقم التليفون": document.getElementById("phone").value,
+                "الحالة الاجتماعية": document.getElementById("socialStatus").value,
+                "العنوان": document.getElementById("address").value,
+                "الديانة": document.getElementById("religion").value,
+                "اسم الأم": document.getElementById("motherName").value,
+                "الرقم القومي للأب": document.getElementById("fatherNationalId").value,
+                "الرقم القومي للأم": document.getElementById("motherNationalId").value,
+                "المدرسة": document.getElementById("prepSchool").value,
+                "المجموع": document.getElementById("totalScore").value,
+                "الفصل": document.getElementById("classRoom").value || "",
+                "الشعبة/المسار": document.getElementById("track").value,
+                "مادة التخصص": document.getElementById("specializedSubject").value,
+                "الصف الدراسي": document.getElementById("grade").value,
+                "حالة الطالب": document.getElementById("studentStatus").value,
+                "نتيجة الامتحان (للترحيل)": document.getElementById("examStatus").value
+            };
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(studentData)
+            })
+            .then(response => {
+                alert('تم حفظ بيانات الطالب بنجاح!');
+                document.getElementById("studentForm").reset();
+                fetchStudents();
+            })
+            .catch(error => {
+                console.error('Error!', error);
+                alert('حدث خطأ أثناء إرسال البيانات.');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'حفظ وإرسال إلى Google Sheets';
+            });
+        }
+
+       function fetchStudents() {
+            const statusEl = document.getElementById('loadingStatus');
+            if (statusEl) statusEl.textContent = 'جاري جلب البيانات...';
+
+            // التأكد من أن رابط السيرفر معرف بشكل صحيح
+            if (typeof scriptURL === 'undefined' || !scriptURL) {
+                console.error('رابط سيرفر جوجل شيت (scriptURL) غير معرف!');
+                if (statusEl) statusEl.textContent = 'خطأ: رابط السيرفر مفقود ❌';
+                return;
+            }
+
+            fetch(scriptURL + "?action=getStudents", {
+                method: 'GET',
+                redirect: 'follow' // لضمان التعامل السليم مع روابط جوجل سكريبت اللي بتعمل إعادة توجيه
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('فشل الاستجابة من السيرفر');
+                return res.json();
+            })
+            .then(data => {
+                allStudentsData = data;
+                displayStudents(allStudentsData);
+                if (statusEl) statusEl.textContent = 'متصل بـ Google Sheets ✅';
+            })
+            .catch(err => {
+                console.log("خطأ في جلب البيانات:", err);
+                if (statusEl) statusEl.textContent = 'خطأ في الاتصال ❌';
+                
+                // حل احتياطي: لو الاتصال فشل، جرب العرض من الجدول المحلي أو إيقاف التحميل المؤقت
+                const tbody = document.getElementById('studentTableBody');
+                if (tbody && tbody.innerHTML.trim() === '') {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-red-500">تعذر الاتصال بقاعدة البيانات. تأكد من نشر السكريبت كـ Web App وصلاحياته (Anyone).</td></tr>`;
+                }
+            });
+        }
+
+        function displayStudents(students) {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = '';
+            
+            if(!students || students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-400">لا توجد بيانات متاحة حالياً في الشيت</td></tr>`;
+                return;
+            }
+
+            let rowsHtml = '';
+            students.forEach(st => {
+                rowsHtml += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-semibold">${st[0] || ''}</td>
+                        <td class="p-3">${st[1] || ''}</td>
+                        <td class="p-3">${st[22] || ''}</td>
+                        <td class="p-3">${st[20] || ''}</td>
+                        <td class="p-3">${st[21] || ''}</td>
+                        <td class="p-3">${st[18] || ''}</td>
+                        <td class="p-3">${st[19] || ''}</td>
+                        <td class="p-3">${st[24] || ''}</td>
+                    </tr>
+                `;
+            });
+
+            // حقن جميع الصفوف دفعة واحدة لضمان عدم حدوث تكرار أو صفوف إضافية
+            tbody.innerHTML = rowsHtml;
+        }
         
-        reportContainer.style.display = 'block';
-        reportTitle.textContent = "تقرير الغياب الشامل (مسحوب من الشيت)";
+        function filterStudents() {
+            const gradeFilter = document.getElementById('filterGrade').value;
+            const trackFilter = document.getElementById('filterTrack').value;
+            const searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
 
-        let html = `<table border="1" cellpadding="8" style="width:100%; border-collapse: collapse; text-align: center;">
-            <tr style="background:#ddd;">
-                <th>اسم الطالب</th>
-                <th>الكود</th>
-                <th>الفصل</th>
-                <th>إجمالي أيام الغياب</th>
-            </tr>`;
+            const filtered = allStudentsData.filter(st => {
+                const code = String(st[0] || '').toLowerCase();
+                const name = String(st[1] || '').toLowerCase();
+                const grade = String(st[22] || '');
+                const track = String(st[20] || '');
 
-        studentsData.forEach(student => {
-            html += `<tr>
-                <td>${student.name}</td>
-                <td>${student.code}</td>
-                <td>${student.classRoom || '-'}</td>
-                <td><strong style="color:red;">${student.absentCount} أيام</strong></td>
-            </tr>`;
-        });
+                const matchesGrade = gradeFilter === "" || grade === gradeFilter;
+                const matchesTrack = trackFilter === "" || track === trackFilter;
+                const matchesSearch = searchVal === "" || name.includes(searchVal) || code.includes(searchVal);
 
-        html += `</table>`;
-        reportContent.innerHTML = html;
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                return matchesGrade && matchesTrack && matchesSearch;
+            });
+
+            displayStudents(filtered);
+        }
+
+ // حساب وعرض الإحصائيات الشاملة لكل صف
+        function renderStatistics() {
+            const container = document.getElementById('statsContainer');
+            container.innerHTML = '';
+
+            const grades = ['الصف الأول الثانوي', 'الصف الثاني الثانوي', 'الصف الثالث الثانوي'];
+
+            grades.forEach(grade => {
+                const studentsInGrade = allStudentsData.filter(st => String(st[22] || '').trim() === grade);
+                const totalCount = studentsInGrade.length;
+
+                // 0. النوع (ذكر / أنثى) - (تأكد أن الفهرس [3] يوافق عمود النوع في بياناتك)
+                const males = studentsInGrade.filter(st => String(st[3] || '').trim() === 'ذكر').length;
+                const females = studentsInGrade.filter(st => String(st[3] || '').trim() === 'أنثى').length;
+
+                // 1. الديانة
+                const muslim = studentsInGrade.filter(st => String(st[13] || '').trim() === 'مسلم').length;
+                const christian = studentsInGrade.filter(st => String(st[13] || '').trim() === 'مسيحي').length;
+
+                // 2. الحالة الاجتماعية / المصروفات
+                const fullPaid = studentsInGrade.filter(st => String(st[11] || '').trim() === 'سداد كامل').length;
+                const affairs = studentsInGrade.filter(st => String(st[11] || '').trim() === 'شئون').length;
+                const orphans = studentsInGrade.filter(st => String(st[11] || '').trim() === 'أيتام').length;
+                const workersKids = studentsInGrade.filter(st => String(st[11] || '').trim() === 'أبناء عاملين').length;
+                const commDev = studentsInGrade.filter(st => String(st[11] || '').trim() === 'تنمية مجتمع').length;
+
+                // 3. المسارات والشعب
+                let tracksStatsHTML = '';
+                if (grade === 'الصف الأول الثانوي') {
+                    const general = studentsInGrade.filter(st => String(st[20] || '').trim() === 'شعبة عامة').length;
+                    tracksStatsHTML = `<div class="flex justify-between py-1 border-b text-sm"><span>شعبة عامة:</span><span class="font-bold">${general}</span></div>`;
+                } else if (grade === 'الصف الثاني الثانوي') {
+                    const t1 = studentsInGrade.filter(st => String(st[20] || '').trim() === 'الطب وعلوم الحياة').length;
+                    const t2 = studentsInGrade.filter(st => String(st[20] || '').trim() === 'الهندسة وعلوم الحاسب').length;
+                    const t3 = studentsInGrade.filter(st => String(st[20] || '').trim() === 'الآداب والفنون').length;
+                    const t4 = studentsInGrade.filter(st => String(st[20] || '').trim() === 'المحاسبة وإدارة الأعمال').length;
+                    tracksStatsHTML = `
+                        <div class="flex justify-between py-1 border-b text-sm"><span>الطب وعلوم الحياة:</span><span class="font-bold">${t1}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>الهندسة وعلوم الحاسب:</span><span class="font-bold">${t2}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>الآداب والفنون:</span><span class="font-bold">${t3}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>المحاسبة وإدارة الأعمال:</span><span class="font-bold">${t4}</span></div>
+                    `;
+                } else if (grade === 'الصف الثالث الثانوي') {
+                    const sciBio = studentsInGrade.filter(st => String(st[20] || '').trim() === 'علمي علوم').length;
+                    const sciMath = studentsInGrade.filter(st => String(st[20] || '').trim() === 'علمي رياضيات').length;
+                    const arts = studentsInGrade.filter(st => String(st[20] || '').trim() === 'أدبي').length;
+                    tracksStatsHTML = `
+                        <div class="flex justify-between py-1 border-b text-sm"><span>علمي علوم:</span><span class="font-bold">${sciBio}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>علمي رياضيات:</span><span class="font-bold">${sciMath}</span></div>
+                        <div class="flex justify-between py-1 border-b text-sm"><span>أدبي:</span><span class="font-bold">${arts}</span></div>
+                    `;
+                }
+
+                const cardHTML = `
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                        <div class="flex justify-between items-center mb-4 border-b pb-3">
+                            <span class="bg-indigo-700 text-white text-xs px-3 py-1 rounded-full font-bold">الإجمالي: ${totalCount}</span>
+                            <h3 class="text-lg font-bold text-indigo-900">${grade}</h3>
+                        </div>
+
+                        <!-- قسم النوع -->
+                        <div class="mb-4">
+                            <div class="bg-indigo-50 text-indigo-900 font-bold text-xs py-1.5 px-3 rounded-md mb-2 text-right">
+                                👤 النوع
+                            </div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>ذكر:</span><span class="font-bold text-blue-600">${males}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>أنثى:</span><span class="font-bold text-pink-600">${females}</span></div>
+                        </div>
+
+                        <!-- قسم الديانة -->
+                        <div class="mb-4">
+                            <div class="bg-indigo-50 text-indigo-900 font-bold text-xs py-1.5 px-3 rounded-md mb-2 text-right">
+                                🕌 الديانة
+                            </div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>مسلم:</span><span class="font-bold">${muslim}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>مسيحي:</span><span class="font-bold">${christian}</span></div>
+                        </div>
+
+                        <!-- قسم الحالة الاجتماعية / المصروفات -->
+                        <div class="mb-4">
+                            <div class="bg-indigo-50 text-indigo-900 font-bold text-xs py-1.5 px-3 rounded-md mb-2 text-right">
+                                📄 الحالة الاجتماعية / المصروفات
+                            </div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>سداد كامل:</span><span class="font-bold">${fullPaid}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>شئون:</span><span class="font-bold">${affairs}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>أيتام:</span><span class="font-bold">${orphans}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>أبناء عاملين:</span><span class="font-bold">${workersKids}</span></div>
+                            <div class="flex justify-between py-1 border-b text-sm"><span>تنمية مجتمع:</span><span class="font-bold">${commDev}</span></div>
+                        </div>
+
+                        <!-- قسم المسارات والشعب -->
+                        <div>
+                            <div class="bg-indigo-50 text-indigo-900 font-bold text-xs py-1.5 px-3 rounded-md mb-2 text-right">
+                                📊 المسارات والشعب
+                            </div>
+                            ${tracksStatsHTML}
+                        </div>
+                    </div>
+                `;
+
+                container.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        }        function loadStudentsForTracks() {
+            const tbody = document.getElementById('trackTableBody');
+            tbody.innerHTML = '';
+
+            if(!allStudentsData || allStudentsData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">لا توجد بيانات متاحة للتعديل</td></tr>`;
+                return;
+            }
+
+            allStudentsData.forEach((st) => {
+                tbody.innerHTML += `
+                    <tr class="track-row" data-name="${String(st[1] || '').toLowerCase()}" data-code="${String(st[0] || '').toLowerCase()}">
+                        <td class="p-3 font-semibold">${st[0] || ''}</td>
+                        <td class="p-3">${st[1] || ''}</td>
+                        <td class="p-3">${st[22] || ''}</td>
+                        <td class="p-3">${st[20] || ''}</td>
+                        <td class="p-3">
+                            <select onchange="updateRowSubjects(this)" class="p-2 border rounded-lg text-sm w-full track-change-select">
+                                <option value="الطب وعلوم الحياة">الطب وعلوم الحياة</option>
+                                <option value="الهندسة وعلوم الحاسب">الهندسة وعلوم الحاسب</option>
+                                <option value="الآداب والفنون">الآداب والفنون</option>
+                                <option value="المحاسبة وإدارة الأعمال">المحاسبة وإدارة الأعمال</option>
+                            </select>
+                        </td>
+                        <td class="p-3">
+                            <select class="p-2 border rounded-lg text-sm w-full subject-change-select">
+                                <option value="فيزياء">فيزياء</option>
+                                <option value="رياضيات">رياضيات</option>
+                            </select>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="saveStudentTrackChanges(this, '${st[0]}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow transition">حفظ</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterTrackStudents() {
+            const query = document.getElementById('trackSearchInput').value.trim().toLowerCase();
+            const rows = document.querySelectorAll('.track-row');
+
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                const code = row.getAttribute('data-code') || '';
+                
+                if (query === "" || name.includes(query) || code.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function saveStudentTrackChanges(btn, studentCode) {
+            const row = btn.closest('tr');
+            const newTrack = row.querySelector('.track-change-select').value;
+            const newSubject = row.querySelector('.subject-change-select').value;
+
+            btn.disabled = true;
+            btn.textContent = 'جاري الحفظ...';
+
+            const updateData = {
+                "action": "updateTrack",
+                "كود الطالب": studentCode,
+                "الشعبة/المسار": newTrack,
+                "مادة التخصص": newSubject
+            };
+
+            // 1. تحديث المصفوفة المحلية مباشرة عشان العرض يتحدث في مكانه ومن غير صفوف جديدة مكررة
+            if (typeof allStudentsData !== 'undefined') {
+                let student = allStudentsData.find(st => String(st[0] || st.code || '').trim() === String(studentCode).trim());
+                if (student) {
+                    // تحديث أعمدة الشعبة والمادة حسب الفهارس المعتمدة
+                    if (student[20] !== undefined) {
+                        student[20] = newTrack;
+                        student[21] = newSubject;
+                    } else if (student[21] !== undefined) {
+                        student[21] = newTrack;
+                        student[22] = newSubject;
+                    }
+                }
+            }
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            })
+            .then(response => {
+                alert('تم تحديث مسار وتخصص الطالب بنجاح!');
+                
+                // تحديث خلايا الصف الحالي مباشرة في الجدول بدلاً من إعادة جلب كل الجدول بشكل خاطئ يولد صفوفاً جديدة
+                let trackCell = row.querySelector('.track-display-cell') || row.cells[3]; // حسب ترتيب أعمدتك
+                let subjectCell = row.querySelector('.subject-display-cell') || row.cells[4];
+                
+                if (trackCell) trackCell.textContent = newTrack;
+                if (subjectCell) subjectCell.textContent = newSubject;
+
+            })
+            .catch(error => {
+                console.error('Error!', error);
+                alert('حدث خطأ أثناء حفظ التعديل.');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = 'حفظ';
+            });
+        }
+
+        function distributeClasses() {
+            const targetGrade = document.getElementById('targetGradeDist').value;
+            const numClasses = parseInt(document.getElementById('numClasses').value);
+
+            let gradeStudents = allStudentsData.filter(st => String(st[22]) === targetGrade);
+
+            if (gradeStudents.length === 0) {
+                alert('لا توجد طلاب مسجلين في هذه المرحلة حالياً لتوزيعهم!');
+                return;
+            }
+
+            let updates = [];
+            gradeStudents.forEach((st, index) => {
+                let classIndex = (index % numClasses) + 1;
+                let className = `${targetGrade.replace('الصف ', '')} / ${classIndex}`;
+                st[19] = className;
+
+                updates.push({
+                    "كود الطالب": st[0],
+                    "الفصل": className
+                });
+            });
+
+            const distBtn = document.getElementById('distBtn');
+            distBtn.disabled = true;
+            distBtn.textContent = 'جاري الحفظ في الشيت...';
+
+            const payload = {
+                "action": "batchUpdateClass",
+                "updates": updates
+            };
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                alert(`تم توزيع ${gradeStudents.length} طالب على ${numClasses} فصول بنجاح وحفظهم!`);
+                closeClassDistModal();
+                displayStudents(allStudentsData);
+            })
+            .catch(err => {
+                console.error(err);
+                alert('حدث خطأ أثناء حفظ التوزيع.');
+            })
+            .finally(() => {
+                distBtn.disabled = false;
+                distBtn.textContent = 'بدء التوزيع والحفظ';
+            });
+        }
+
+        function renderClassLists() {
+            const selectedGrade = document.getElementById('viewGradeSelect').value;
+            const container = document.getElementById('printableSection');
+            container.innerHTML = '';
+
+            const gradeStudents = allStudentsData.filter(st => String(st[22]) === selectedGrade && st[19]);
+
+            if (gradeStudents.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-400 py-8">لا توجد فصول موزعة لهذه المرحلة بعد. قم بعمل "إعداد وتوزيع الفصول الآلي" أولاً.</div>`;
+                return;
+            }
+
+            let classesMap = {};
+            gradeStudents.forEach(st => {
+                let clsName = st[19];
+                if (!classesMap[clsName]) {
+                    classesMap[clsName] = [];
+                }
+                classesMap[clsName].push(st);
+            });
+
+            for (let clsName in classesMap) {
+                let studentsInClass = classesMap[clsName];
+                
+                let tableHTML = `
+                    <div class="border rounded-xl p-4 bg-white shadow-sm mb-6 page-break">
+                        <div class="flex justify-between items-center mb-3 border-b pb-2">
+                            <h4 class="font-bold text-lg text-indigo-800">فصل: ${clsName}</h4>
+                            <span class="text-sm font-semibold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">إجمالي الطلاب: ${studentsInClass.length}</span>
+                        </div>
+                        <table class="w-full text-right border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-100 border-b">
+                                    <th class="p-2 border text-center w-12">م</th>
+                                    <th class="p-2 border">الاسم</th>
+                                    <th class="p-2 border text-center w-24">النوع</th>
+                                    <th class="p-2 border">الشعبة / المسار</th>
+                                    <th class="p-2 border">مادة التخصص</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                studentsInClass.forEach((st, idx) => {
+                    tableHTML += `
+                        <tr>
+                            <td class="p-2 border text-center">${idx + 1}</td>
+                            <td class="p-2 border font-semibold">${st[1] || ''}</td>
+                            <td class="p-2 border text-center">${st[3] || ''}</td>
+                            <td class="p-2 border">${st[20] || ''}</td>
+                            <td class="p-2 border">${st[21] || ''}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.innerHTML += tableHTML;
+            }
+        }
+
+        function executePromotion() { closePromotionModal(); alert('تم تنفيذ الترحيل بنجاح'); }
+
+        window.onload = function() {
+            fetchStudents();
+        }
+    </script>
+    <!-- كود ذكي ومحدث لمنع الصفحات الفارغة وفصل الفصول بدقة -->
+<script>
+window.onbeforeprint = function() {
+    const printableSection = document.getElementById('printableSection');
+    if (printableSection) {
+        // 1. تنظيف أي فواصل صفحات قديمة مضافة سابقاً لمنع التكرار والصفحات الفارغة
+        const oldBreaks = printableSection.querySelectorAll('.auto-page-break');
+        oldBreaks.forEach(el => el.remove());
+
+        // 2. البحث عن كل العناوين التي تبدأ بكلمة "فصل:"
+        const headings = Array.from(printableSection.querySelectorAll('h1, h2, h3, h4, h5, h6, div, p'))
+                              .filter(el => el.textContent.trim().startsWith('فصل:'));
+        
+        // 3. إضافة فاصل صفحات بدءاً من الفصل الثاني فقط (تخطي الفصل الأول لعدم ترك صفحة بيضاء في البداية)
+        for (let i = 1; i < headings.length; i++) {
+            const el = headings[i];
+            
+            const pageBreak = document.createElement('div');
+            pageBreak.className = 'auto-page-break';
+            pageBreak.style.cssText = 'clear: both !important; page-break-before: always !important; break-before: page !important; display: block !important; height: 0px !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important;';
+            
+            // إدخال الفاصل قبل الفصل الجديد مباشرة
+            el.parentNode.insertBefore(pageBreak, el);
+        }
     }
+};
+    </script>
+<!-- كود ذكي مطور لتطهير ومنع الصفحات البيضاء تماماً وفصل الفصول -->
+<script>
+window.onbeforeprint = function() {
+    const printableSection = document.getElementById('printableSection');
+    if (printableSection) {
+        // 1. تنظيف شامل لأي فواصل أو عناصر فارغة قديمة مضافة
+        const targets = printableSection.querySelectorAll('.print-clean-page-break');
+        targets.forEach(el => el.remove());
+
+        // 2. البحث عن كل العناصر التي تحتوي على كلمة "فصل:" بالداخل
+        const allElements = Array.from(printableSection.querySelectorAll('h1, h2, h3, h4, h5, h6, div, p'));
+        const classHeaders = allElements.filter(el => el.textContent.trim().startsWith('فصل:'));
+        
+        // 3. نطبق الفاصل بدءاً من الفصل الثاني فصاعداً لحماية الفصل الأول من ترك صفحة فارغة في البداية
+        classHeaders.forEach((header, index) => {
+            if (index > 0) {
+                const breaker = document.createElement('div');
+                breaker.className = 'print-clean-page-break';
+                
+                // إدخال الفاصل بدقة متناهية قبل ترويسة الفصل الجديد مباشرة
+                header.parentNode.insertBefore(breaker, header);
+            }
+        });
+    }
+};
 </script>
 
 </body>
